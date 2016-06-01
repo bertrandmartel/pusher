@@ -18,7 +18,9 @@
  */
 package com.github.akinaru.roboticbuttonpusher.menu;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.support.v4.widget.DrawerLayout;
@@ -26,7 +28,10 @@ import android.view.MenuItem;
 
 import com.github.akinaru.roboticbuttonpusher.R;
 import com.github.akinaru.roboticbuttonpusher.dialog.AboutDialog;
+import com.github.akinaru.roboticbuttonpusher.dialog.DeviceNameDialog;
+import com.github.akinaru.roboticbuttonpusher.dialog.DevicePasswordDialog;
 import com.github.akinaru.roboticbuttonpusher.dialog.OpenSourceItemsDialog;
+import com.github.akinaru.roboticbuttonpusher.inter.IButtonPusher;
 
 /**
  * Some functions used to manage Menu
@@ -42,9 +47,50 @@ public class MenuUtils {
      * @param mDrawer  navigation drawer
      * @param context  android context
      */
-    public static void selectDrawerItem(MenuItem menuItem, DrawerLayout mDrawer, Context context) {
+    public static void selectDrawerItem(MenuItem menuItem, DrawerLayout mDrawer, Context context, final IButtonPusher buttonPusher) {
 
         switch (menuItem.getItemId()) {
+            case R.id.devicename_item: {
+                if (buttonPusher != null) {
+                    DeviceNameDialog dialog = new DeviceNameDialog(buttonPusher);
+                    dialog.show();
+                }
+                break;
+            }
+            case R.id.password_item: {
+                if (buttonPusher != null) {
+                    DevicePasswordDialog dialog = new DevicePasswordDialog(buttonPusher);
+                    dialog.show();
+                }
+                break;
+            }
+            case R.id.debug_mode_item: {
+                
+                CharSequence[] array = {"enabled", "disabled"};
+
+                int indexCheck = buttonPusher.getDebugMode() ? 0 : 1;
+
+                new AlertDialog.Builder(context)
+                        .setSingleChoiceItems(array, indexCheck, null)
+                        .setPositiveButton(buttonPusher.getContext().getResources().getString(R.string.dialog_ok), new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                dialog.dismiss();
+                                int selectedPosition = ((AlertDialog) dialog).getListView().getCheckedItemPosition();
+                                if (selectedPosition == 0) {
+                                    buttonPusher.setDebugMode(true);
+                                } else {
+                                    buttonPusher.setDebugMode(false);
+                                }
+                            }
+                        })
+                        .setNegativeButton(buttonPusher.getContext().getResources().getString(R.string.cancel), new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                dialog.dismiss();
+                            }
+                        })
+                        .show();
+                break;
+            }
             case R.id.report_bugs: {
                 Intent intent = new Intent(Intent.ACTION_SENDTO, Uri.fromParts(
                         "mailto", context.getResources().getString(R.string.email_addr), null));

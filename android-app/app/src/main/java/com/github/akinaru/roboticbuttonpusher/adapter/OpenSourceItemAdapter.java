@@ -35,11 +35,7 @@ import com.github.akinaru.roboticbuttonpusher.R;
 public class OpenSourceItemAdapter extends BaseAdapter {
 
     private static final String[][] COMPONENTS = new String[][]{
-
-            {"DiscreteSeekBar", "https://github.com/AnderWeb/discreteSeekBar"},
-            {"MPAndroidChart",
-                    "https://github.com/PhilJay/MPAndroidChart"},
-            {"nv-bluetooth", "https://github.com/TakahikoKawasaki/nv-bluetooth"},
+            
             {"RFDuino", "https://github.com/RFduino/RFduino"},
             {"rfduino-makefile", "https://github.com/akinaru/rfduino-makefile"}
     };
