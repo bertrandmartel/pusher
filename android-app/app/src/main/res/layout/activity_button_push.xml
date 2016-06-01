@@ -22,35 +22,44 @@
             android:layout_height="match_parent"
             android:fillViewport="true">
 
-            <!-- As the main content view, the view below consumes the entire
-                 space available using match_parent in both dimensions. -->
-            <FrameLayout
-                android:id="@+id/container"
+
+            <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent">
 
+                <FrameLayout
+                    android:id="@+id/container2"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_alignParentStart="true"
+                    android:layout_centerVertical="true">
+
+                    <android.support.design.widget.FloatingActionButton
+                        android:id="@+id/fab"
+                        android:layout_width="150dp"
+                        android:layout_height="150dp"
+                        android:layout_gravity="center"
+                        android:clickable="true"
+                        android:gravity="center"
+                        android:scaleType="center"
+                        android:src="@drawable/ic_lock_open"
+                        app:borderWidth="0dp"
+                        app:elevation="24dp" />
+
+                </FrameLayout>
+
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:id="@+id/debug_mode_tv"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:elevation="25dp"
-                    android:text="Push"
-                    android:textStyle="bold"
-                    android:textAppearance="?android:attr/textAppearanceMedium"
-                    android:textColor="@android:color/black" />
+                    android:padding="10dp"
+                    android:text="Scanning for device ...\nConnecting to device ...\nSending command ...\nCommand success !"
+                    android:visibility="gone" />
 
-                <android.support.design.widget.FloatingActionButton
-                    android:id="@+id/fab"
-                    android:layout_width="100dp"
-                    android:layout_height="100dp"
-                    android:layout_gravity="center"
-                    android:clickable="true"
-                    android:gravity="center"
-                    app:borderWidth="0dp"
-                    app:elevation="24dp" />
+            </RelativeLayout>
 
-            </FrameLayout>
         </ScrollView>
+
     </LinearLayout>
 
     <!-- The navigation drawer that comes from the left --><!-- Note that `android:layout_gravity` needs to be set to 'start' -->

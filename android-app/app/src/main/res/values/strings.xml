@@ -1,12 +1,11 @@
 <resources>
     <string name="app_name">Button Pusher</string>
-    <string name="action_settings">Settings</string>
     <string name="drawer_open">Open navigation drawer</string>
     <string name="drawer_close">Close navigation drawer</string>
     <string name="open_source_items">Open Source components</string>
     <string name="about">About</string>
     <string name="copyright">\u00a9 2016 Bertrand Martel</string>
-    <string name="github_link">https://github.com/akinaru/bluetooth-le-analyzer</string>
+    <string name="github_link">https://github.com/akinaru/bluetooth-button-pusher</string>
     <string name="bt_device_title">Button Pusher</string>
     <string name="ble_not_supported">Bluetooth Smart is not supported on your device</string>
     <string name="toast_scan_stop">scanning has stopped</string>
@@ -15,16 +14,9 @@
     <string name="caption_packet_count">packet count per second</string>
     <string name="toast_bluetooth_disabled">Bluetooth disabled</string>
     <string name="toast_already_scanning">already scanning...</string>
-    <string name="addition_average_packet"> in 1 second</string>
-    <string name="main_menu_select">Select Bluetooth device type</string>
-    <string name="toast_looking_for_rfdroid">Looking for RFdroid ...</string>
-    <string name="rfdroid_title">RFdroid - reception rate</string>
     <string name="connection_to_rfdroid">Connecting ...</string>
-    <string name="menu_item_title_reception_rate">Switch chart data to \'reception rate\'</string>
-    <string name="menu_item_title_packet_count">Switch chart data to \'packet count\'</string>
-    <string name="interval">Interval</string>
     <string name="email_addr">kiruazoldik92@gmail.com</string>
-    <string name="issue_subject">Bluetooth LE Analyzer Issue</string>
+    <string name="issue_subject">Bluetooth Button Pusher</string>
     <string name="report_hint">Your error report here...</string>
     <string name="issue_title">Report a problem</string>
     <string name="scan_no_device">no device detected...</string>
@@ -35,4 +27,17 @@
     <string name="menu_item_report_bugs">Report Bugs</string>
     <string name="menu_item_rfdroid_device">RFdroid device</string>
     <string name="menu_item_switch_data_packet_count">Switch chart data to \'packet count\'</string>
+    <string name="menu_device_name">Device name : </string>
+    <string name="menu_password">Password</string>
+    <string name="scan_log">Scanning for device</string>
+    <string name="connect_log">Connecting to device</string>
+    <string name="send_cmd_log">Sending command ...</string>
+    <string name="command_success_log">Command success !</string>
+    <string name="command_failure_log">Command failure</string>
+    <string name="rfduino_device_name">RFduino device name</string>
+    <string name="rfduino_device_password">RFduino device password</string>
+    <string name="dialog_ok">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="debug_mode_title">Debug mode :</string>
+    <string name="menu_title_clear">clear</string>
 </resources>

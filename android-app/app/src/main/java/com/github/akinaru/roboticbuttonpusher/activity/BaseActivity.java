@@ -31,12 +31,11 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.ImageButton;
-import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.github.akinaru.roboticbuttonpusher.R;
+import com.github.akinaru.roboticbuttonpusher.inter.IButtonPusher;
 import com.github.akinaru.roboticbuttonpusher.menu.MenuUtils;
 import com.github.akinaru.roboticbuttonpusher.service.BtPusherService;
 
@@ -45,7 +44,7 @@ import com.github.akinaru.roboticbuttonpusher.service.BtPusherService;
  *
  * @author Bertrand Martel
  */
-public abstract class BaseActivity extends AppCompatActivity {
+public abstract class BaseActivity extends AppCompatActivity implements IButtonPusher {
 
     private final static String TAG = BaseActivity.class.getSimpleName();
 
@@ -103,11 +102,15 @@ public abstract class BaseActivity extends AppCompatActivity {
         layoutId = resId;
     }
 
+    protected TextView debugTv;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(layoutId);
+
+        debugTv = (TextView) findViewById(R.id.debug_mode_tv);
 
         // Set a Toolbar to replace the ActionBar.
         toolbar = (Toolbar) findViewById(R.id.toolbar_item);
@@ -151,7 +154,7 @@ public abstract class BaseActivity extends AppCompatActivity {
                 new NavigationView.OnNavigationItemSelectedListener() {
                     @Override
                     public boolean onNavigationItemSelected(MenuItem menuItem) {
-                        MenuUtils.selectDrawerItem(menuItem, mDrawer, BaseActivity.this);
+                        MenuUtils.selectDrawerItem(menuItem, mDrawer, BaseActivity.this, BaseActivity.this);
                         return true;
                     }
                 });
@@ -209,6 +212,25 @@ public abstract class BaseActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         this.getMenuInflater().inflate(R.menu.toolbar_menu, menu);
+
+        //clear button
+        MenuItem item = menu.findItem(R.id.clear_btn);
+        if (item != null) {
+            item.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+
+                @Override
+                public boolean onMenuItemClick(MenuItem item) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            debugTv.setText("");
+                        }
+                    });
+                    return true;
+                }
+            });
+        }
         return super.onCreateOptionsMenu(menu);
     }
+
 }
