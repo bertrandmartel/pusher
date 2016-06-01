@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group android:checkableBehavior="single">
+
+        <item
+            android:id="@+id/report_bugs"
+            android:icon="@drawable/ic_bug_report"
+            android:title="@string/menu_item_report_bugs" />
+
+        <item
+            android:id="@+id/open_source_components"
+            android:icon="@drawable/ic_view_comfy"
+            android:title="@string/menu_item_open_soçurce_components" />
+
+        <item
+            android:id="@+id/about_app"
+            android:icon="@drawable/ic_info_outline"
+            android:title="@string/menu_item_about" />
+    </group>
+</menu>
