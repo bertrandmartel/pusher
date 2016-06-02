@@ -54,7 +54,6 @@ void RFduinoBLE_onReceive(char *data, int len){
     digitalWrite(led, LOW);
     char dataRet[]= "La porte s'ouvre...";
     RFduinoBLE.send(dataRet,strlen(dataRet));
-    delay(5000);
   }
 }
 
