@@ -27,6 +27,6 @@ import com.github.akinaru.roboticbuttonpusher.bluetooth.listener.IPushListener;
  */
 public interface IRfduinoDevice {
 
-    void setAdvertisingInterval(int intervalMillis, IPushListener listener);
+    void sendPush(String password, IPushListener listener);
 
 }

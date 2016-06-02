@@ -30,5 +30,5 @@ public class BluetoothEvents {
     public final static String BT_EVENT_SCAN_START = "com.github.akinaru.roboticbuttonpusher.bluetooth.BT_EVENT_SCAN_START";
     public final static String BT_EVENT_SCAN_END = "com.github.akinaru.roboticbuttonpusher.bluetooth.BT_EVENT_SCAN_END";
     public final static String BT_EVENT_DEVICE_DISCOVERED = "com.github.akinaru.roboticbuttonpusher.bluetooth.BT_EVENT_DEVICE_DISCOVERED";
-
+    public final static String BT_EVENT_DEVICE_NOTIFICATION = "com.github.akinaru.roboticbuttonpusher.bluetooth.BT_EVENT_DEVICE_NOTIFICATION";
 }
