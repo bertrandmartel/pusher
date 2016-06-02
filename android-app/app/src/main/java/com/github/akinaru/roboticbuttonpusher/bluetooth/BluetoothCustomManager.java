@@ -257,6 +257,7 @@ public class BluetoothCustomManager implements IBluetoothCustomManager {
      */
     @SuppressLint("NewApi")
     public boolean connect(String address) {
+
         if (mBluetoothAdapter == null || address == null) {
             Log.w(TAG, "BluetoothAdapter not initialized or unspecified address.");
             return false;

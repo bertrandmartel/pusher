@@ -171,7 +171,7 @@ public class BluetoothDeviceConn implements IBluetoothDeviceConn {
 
             @Override
             public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-                //manager.getEventManager().set();
+                manager.getEventManager().set();
                 if (device != null) {
                     device.notifyCharacteristicWriteReceived(characteristic);
                 }

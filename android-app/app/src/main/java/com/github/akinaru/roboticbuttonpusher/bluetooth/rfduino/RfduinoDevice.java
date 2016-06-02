@@ -24,6 +24,7 @@ import android.util.Log;
 
 import com.github.akinaru.roboticbuttonpusher.bluetooth.connection.BluetoothDeviceAbstr;
 import com.github.akinaru.roboticbuttonpusher.bluetooth.connection.IBluetoothDeviceConn;
+import com.github.akinaru.roboticbuttonpusher.bluetooth.events.BluetoothEvents;
 import com.github.akinaru.roboticbuttonpusher.bluetooth.listener.ICharacteristicListener;
 import com.github.akinaru.roboticbuttonpusher.bluetooth.listener.IDeviceInitListener;
 import com.github.akinaru.roboticbuttonpusher.bluetooth.listener.IPushListener;
@@ -58,17 +59,21 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
             @Override
             public void onCharacteristicReadReceived(BluetoothGattCharacteristic charac) {
-
+                Log.v(TAG, "onCharacteristicReadReceived");
             }
 
             @Override
             public void onCharacteristicChangeReceived(BluetoothGattCharacteristic charac) {
+                Log.v(TAG, "onCharacteristicChangeReceived : " + new String(charac.getValue()));
 
+                ArrayList<String> values = new ArrayList<>();
+                values.add(new String(charac.getValue()));
+                getConn().getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_NOTIFICATION, values);
             }
 
             @Override
             public void onCharacteristicWriteReceived(BluetoothGattCharacteristic charac) {
-
+                Log.v(TAG, "onCharacteristicWriteReceived : " + new String(charac.getValue()));
             }
         });
     }
@@ -76,7 +81,7 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
     @Override
     public void init() {
 
-        Log.i(TAG, "initializing RFduino");
+        Log.v(TAG, "initializing RFduino");
 
         conn.enableDisableNotification(UUID.fromString(RFDUINO_SERVICE), UUID.fromString(RFDUINO_RECEIVE_CHARAC), true);
         conn.enableGattNotifications(RFDUINO_SERVICE, RFDUINO_RECEIVE_CHARAC);
@@ -97,16 +102,8 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
     }
 
     @Override
-    public void setAdvertisingInterval(int intervalMillis, IPushListener listener) {
-
-        Log.i(TAG, "setAdvertisingInterval " + intervalMillis + "ms");
-
-        intervalMillis = (int) (intervalMillis / 0.625);
-
-        Log.i(TAG, "sending " + intervalMillis);
-
-        byte[] data = new byte[]{(byte) (intervalMillis >> 8), (byte) intervalMillis};
-        getConn().writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, data, listener);
-
+    public void sendPush(String password, IPushListener listener) {
+        getConn().writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, password.getBytes(), listener);
     }
+
 }

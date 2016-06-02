@@ -64,7 +64,7 @@ public abstract class BaseActivity extends AppCompatActivity implements IButtonP
     protected DrawerLayout mDrawer = null;
 
     /**
-     * toggle on the hambureger button
+     * toggle on the hamburger button
      */
     protected ActionBarDrawerToggle drawerToggle;
 
@@ -203,6 +203,7 @@ public abstract class BaseActivity extends AppCompatActivity implements IButtonP
 
         if (mService != null && !mService.isScanning()) {
             Log.v(TAG, "start scan");
+            mService.clearScanningList();
             mService.disconnectall();
             mService.startScan();
 
