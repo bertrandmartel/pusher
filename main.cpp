@@ -45,14 +45,14 @@ void RFduinoBLE_onDisconnect(){
 
 void RFduinoBLE_onReceive(char *data, int len){
 
-  if (strcmp(data,"bubulle")==0)
+  if (strcmp(data,"admin")==0)
   {
     digitalWrite(led, HIGH);
     s1.attach(2);
     motor_process();
     s1.detach();
     digitalWrite(led, LOW);
-    char dataRet[]= "La porte s'ouvre...";
+    char dataRet[]= "Door is opening...";
     RFduinoBLE.send(dataRet,strlen(dataRet));
   }
 }
