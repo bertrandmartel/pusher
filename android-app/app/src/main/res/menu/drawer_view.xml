@@ -29,6 +29,11 @@
             android:title="@string/menu_item_open_soçurce_components" />
 
         <item
+            android:id="@+id/rate_app"
+            android:icon="@drawable/ic_star_rate"
+            android:title="@string/rate_app_title" />
+        
+        <item
             android:id="@+id/about_app"
             android:icon="@drawable/ic_info_outline"
             android:title="@string/menu_item_about" />

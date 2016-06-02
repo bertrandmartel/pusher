@@ -31,6 +31,8 @@ import android.support.design.widget.FloatingActionButton;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.Toast;
 
 import com.github.akinaru.roboticbuttonpusher.R;
@@ -40,8 +42,11 @@ import com.github.akinaru.roboticbuttonpusher.bluetooth.listener.IPushListener;
 import com.github.akinaru.roboticbuttonpusher.bluetooth.rfduino.IRfduinoDevice;
 import com.github.akinaru.roboticbuttonpusher.model.ButtonPusherState;
 import com.github.akinaru.roboticbuttonpusher.service.BtPusherService;
+import com.github.silvestrpredko.dotprogressbar.DotProgressBar;
 
 import java.util.ArrayList;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -71,17 +76,85 @@ public class PushActivity extends BaseActivity {
 
     private String mDeviceAdress;
 
-    private ButtonPusherState state = ButtonPusherState.NONE;
-
     /**
      * shared preference object.
      */
     private SharedPreferences sharedPref;
 
+    private ScheduledFuture mAnimationTask;
+
     protected void onCreate(Bundle savedInstanceState) {
 
         setLayout(R.layout.activity_button_push);
         super.onCreate(savedInstanceState);
+
+        mAnimationScaleUp = AnimationUtils.loadAnimation(this, R.anim.scale_up);
+        mAnimationScaleDown = AnimationUtils.loadAnimation(this, R.anim.scale_down);
+        mAnimationDefaultScaleUp = AnimationUtils.loadAnimation(this, R.anim.scale_default_up);
+
+        dotProgressBar = (DotProgressBar) findViewById(R.id.dot_progress_bar);
+        mFailureButton = (FloatingActionButton) findViewById(R.id.failure_button);
+
+        mAnimationScaleUp.setAnimationListener(new Animation.AnimationListener() {
+            @Override
+            public void onAnimationStart(Animation arg0) {
+            }
+
+            @Override
+            public void onAnimationRepeat(Animation arg0) {
+            }
+
+            @Override
+            public void onAnimationEnd(Animation arg0) {
+
+                mAnimationTask = mExecutor.schedule(new Runnable() {
+                    @Override
+                    public void run() {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (mFailure) {
+                                    mFailureButton.startAnimation(mAnimationScaleDown);
+                                } else {
+                                    mImgSelection.startAnimation(mAnimationScaleDown);
+                                }
+                            }
+                        });
+
+                    }
+                }, 1000, TimeUnit.MILLISECONDS);
+
+            }
+        });
+
+        mAnimationScaleDown.setAnimationListener(new Animation.AnimationListener() {
+            @Override
+            public void onAnimationStart(Animation arg0) {
+            }
+
+            @Override
+            public void onAnimationRepeat(Animation arg0) {
+            }
+
+            @Override
+            public void onAnimationEnd(Animation arg0) {
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (mFailure) {
+                            mFailure = false;
+                            mFailureButton.setVisibility(View.GONE);
+                        } else {
+                            mImgSelection.setVisibility(View.GONE);
+                        }
+                        button.setVisibility(View.VISIBLE);
+                        button.startAnimation(mAnimationDefaultScaleUp);
+                    }
+                });
+
+            }
+        });
 
         //shared preference
         sharedPref = getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE);
@@ -90,12 +163,19 @@ public class PushActivity extends BaseActivity {
         mPassword = sharedPref.getString("password", DEFAULT_PASSWORD);
         mDebugMode = sharedPref.getBoolean("debugMode", DEFAULT_DEBUG_MODE);
 
+        mImgSelection = (FloatingActionButton) findViewById(R.id.img_selection);
+
         button = (FloatingActionButton) findViewById(R.id.fab);
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
-                state = ButtonPusherState.SCAN;
+                if (mAnimationTask != null) {
+                    mAnimationTask.cancel(true);
+                }
+                button.setVisibility(View.GONE);
+                dotProgressBar.setVisibility(View.VISIBLE);
+                mState = ButtonPusherState.SCAN;
                 clearReplaceDebugTv("Scanning for device ...");
                 triggerNewScan();
             }
@@ -262,6 +342,7 @@ public class PushActivity extends BaseActivity {
      * broadcast receiver to receive bluetooth events
      */
     private final BroadcastReceiver mBluetoothReceiver = new BroadcastReceiver() {
+
         @Override
         public void onReceive(Context context, Intent intent) {
 
@@ -273,20 +354,32 @@ public class PushActivity extends BaseActivity {
             } else if (BluetoothEvents.BT_EVENT_SCAN_END.equals(action)) {
 
                 Log.v(TAG, "Scan has ended");
-                if (state == ButtonPusherState.DEVICE_FOUND) {
-                    state = ButtonPusherState.CONNECT;
+                if (mState == ButtonPusherState.DEVICE_FOUND) {
+                    mState = ButtonPusherState.CONNECT;
                     appendDebugTv("Connecting to device " + mDeviceAdress + " ...");
+                    mTimeoutTask = mExecutor.schedule(new Runnable() {
+                        @Override
+                        public void run() {
+                            mService.disconnectall();
+                            appendDebugTv("Error, connection failed");
+                            mState = ButtonPusherState.NONE;
+                            showFailure();
+                        }
+                    }, 2500, TimeUnit.MILLISECONDS);
                     mService.connect(mDeviceAdress);
                 }
             } else if (BluetoothEvents.BT_EVENT_DEVICE_DISCOVERED.equals(action)) {
 
-                if (state == ButtonPusherState.SCAN) {
+                if (mState == ButtonPusherState.SCAN) {
                     Log.v(TAG, "New device has been discovered");
                     final BluetoothObject btDeviceTmp = BluetoothObject.parseArrayList(intent);
 
                     if (btDeviceTmp != null && btDeviceTmp.getDeviceName().equals(mDeviceName)) {
                         Log.v(TAG, "found device " + mDeviceName);
-                        state = ButtonPusherState.DEVICE_FOUND;
+                        if (mTimeoutTask != null) {
+                            mTimeoutTask.cancel(true);
+                        }
+                        mState = ButtonPusherState.DEVICE_FOUND;
                         mDeviceAdress = btDeviceTmp.getDeviceAddress();
                         mService.stopScan();
                     }
@@ -295,27 +388,53 @@ public class PushActivity extends BaseActivity {
             } else if (BluetoothEvents.BT_EVENT_DEVICE_NOTIFICATION.equals(action)) {
 
                 Log.v(TAG, "Device notification");
-                if (state == ButtonPusherState.SEND_COMMAND) {
+                if (mState == ButtonPusherState.SEND_COMMAND) {
                     mService.disconnect(mDeviceAdress);
                     ArrayList<String> actionsStr = intent.getStringArrayListExtra("");
                     Log.v(TAG, "Receive notification : " + actionsStr.get(0));
                     appendDebugTv("Receive notification : " + actionsStr.get(0) + " ...");
-                    state = ButtonPusherState.NONE;
+                    mState = ButtonPusherState.NONE;
+
+                    if (mImgSelection != null && button != null) {
+
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+
+                                button.setVisibility(View.GONE);
+                                dotProgressBar.setVisibility(View.GONE);
+                                mImgSelection.setVisibility(View.VISIBLE);
+                                mImgSelection.clearAnimation();
+                                mImgSelection.startAnimation(mAnimationScaleUp);
+                            }
+                        });
+
+                    }
+
                 }
             } else if (BluetoothEvents.BT_EVENT_DEVICE_DISCONNECTED.equals(action)) {
 
                 Log.v(TAG, "Device disconnected");
-                if (state == ButtonPusherState.CONNECT) {
+                if (mState == ButtonPusherState.CONNECT) {
                     appendDebugTv("Error connection closed ...");
-                    state = ButtonPusherState.NONE;
+                    mState = ButtonPusherState.NONE;
+                    if (mTimeoutTask != null) {
+                        mTimeoutTask.cancel(true);
+                    }
+                    showFailure();
+
                 }
             } else if (BluetoothEvents.BT_EVENT_DEVICE_CONNECTED.equals(action)) {
 
                 Log.v(TAG, "device has been connected");
 
-                if (state == ButtonPusherState.CONNECT) {
+                if (mState == ButtonPusherState.CONNECT) {
 
-                    state = ButtonPusherState.SEND_COMMAND;
+                    mState = ButtonPusherState.SEND_COMMAND;
+
+                    if (mTimeoutTask != null) {
+                        mTimeoutTask.cancel(true);
+                    }
 
                     appendDebugTv("Sending command ...");
                     if (mService.getConnectionList().get(mDeviceAdress).getDevice() instanceof IRfduinoDevice) {
@@ -342,15 +461,6 @@ public class PushActivity extends BaseActivity {
             @Override
             public void run() {
                 debugTv.setText(text + System.getProperty("line.separator"));
-            }
-        });
-    }
-
-    private void appendDebugTv(final String text) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                debugTv.append(text + System.getProperty("line.separator"));
             }
         });
     }
