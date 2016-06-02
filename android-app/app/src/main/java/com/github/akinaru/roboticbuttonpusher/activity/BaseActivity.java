@@ -22,6 +22,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -31,13 +32,22 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.animation.Animation;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.github.akinaru.roboticbuttonpusher.R;
 import com.github.akinaru.roboticbuttonpusher.inter.IButtonPusher;
 import com.github.akinaru.roboticbuttonpusher.menu.MenuUtils;
+import com.github.akinaru.roboticbuttonpusher.model.ButtonPusherState;
 import com.github.akinaru.roboticbuttonpusher.service.BtPusherService;
+import com.github.silvestrpredko.dotprogressbar.DotProgressBar;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Abstract activity for all activities in Bluetooth LE Analyzer
@@ -103,6 +113,26 @@ public abstract class BaseActivity extends AppCompatActivity implements IButtonP
     }
 
     protected TextView debugTv;
+
+    protected ButtonPusherState mState = ButtonPusherState.NONE;
+
+    protected ScheduledExecutorService mExecutor = Executors.newScheduledThreadPool(1);
+
+    protected ScheduledFuture mTimeoutTask;
+
+    protected FloatingActionButton mImgSelection;
+
+    protected DotProgressBar dotProgressBar;
+
+    protected Animation mAnimationScaleUp;
+
+    protected Animation mAnimationScaleDown;
+
+    protected Animation mAnimationDefaultScaleUp;
+
+    protected FloatingActionButton mFailureButton;
+
+    protected boolean mFailure = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -202,12 +232,40 @@ public abstract class BaseActivity extends AppCompatActivity implements IButtonP
     public void triggerNewScan() {
 
         if (mService != null && !mService.isScanning()) {
+
             Log.v(TAG, "start scan");
+
+            mTimeoutTask = mExecutor.schedule(new Runnable() {
+                @Override
+                public void run() {
+                    mService.clearScanningList();
+                    mService.stopScan();
+                    appendDebugTv("Error, device not found");
+                    mState = ButtonPusherState.NONE;
+                    showFailure();
+
+                }
+            }, 2500, TimeUnit.MILLISECONDS);
+
             mService.clearScanningList();
             mService.disconnectall();
             mService.startScan();
-
         }
+    }
+
+    protected void showFailure() {
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mImgSelection.setVisibility(View.GONE);
+                dotProgressBar.setVisibility(View.GONE);
+                mFailureButton.setVisibility(View.VISIBLE);
+                mFailureButton.clearAnimation();
+                mFailure = true;
+                mFailureButton.startAnimation(mAnimationScaleUp);
+            }
+        });
     }
 
     @Override
@@ -234,4 +292,12 @@ public abstract class BaseActivity extends AppCompatActivity implements IButtonP
         return super.onCreateOptionsMenu(menu);
     }
 
+    protected void appendDebugTv(final String text) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                debugTv.append(text + System.getProperty("line.separator"));
+            }
+        });
+    }
 }
