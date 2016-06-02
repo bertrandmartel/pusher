@@ -88,6 +88,8 @@ public class PushActivity extends BaseActivity {
         setLayout(R.layout.activity_button_push);
         super.onCreate(savedInstanceState);
 
+        Log.v(TAG, "oncreate");
+
         mAnimationScaleUp = AnimationUtils.loadAnimation(this, R.anim.scale_up);
         mAnimationScaleDown = AnimationUtils.loadAnimation(this, R.anim.scale_down);
         mAnimationDefaultScaleUp = AnimationUtils.loadAnimation(this, R.anim.scale_default_up);
@@ -173,8 +175,16 @@ public class PushActivity extends BaseActivity {
                 if (mAnimationTask != null) {
                     mAnimationTask.cancel(true);
                 }
-                button.setVisibility(View.GONE);
-                dotProgressBar.setVisibility(View.VISIBLE);
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        button.setVisibility(View.GONE);
+                        dotProgressBar.setVisibility(View.VISIBLE);
+                        dotProgressBar.setAlpha(255);
+                    }
+                });
+
                 mState = ButtonPusherState.SCAN;
                 clearReplaceDebugTv("Scanning for device ...");
                 triggerNewScan();
@@ -210,6 +220,7 @@ public class PushActivity extends BaseActivity {
     protected void onDestroy() {
         super.onDestroy();
         Log.v(TAG, "onDestroy");
+        unregisterReceiver(mBluetoothReceiver);
         try {
             if (mBound) {
                 unbindService(mServiceConnection);
@@ -223,6 +234,7 @@ public class PushActivity extends BaseActivity {
     @Override
     public void onResume() {
         super.onResume();
+        dotProgressBar.setAlpha(0);
     }
 
     @Override
@@ -422,7 +434,6 @@ public class PushActivity extends BaseActivity {
                         mTimeoutTask.cancel(true);
                     }
                     showFailure();
-
                 }
             } else if (BluetoothEvents.BT_EVENT_DEVICE_CONNECTED.equals(action)) {
 
