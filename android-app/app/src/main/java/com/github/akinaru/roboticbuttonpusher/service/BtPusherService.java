@@ -26,7 +26,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Binder;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.util.Log;
 
 import com.github.akinaru.roboticbuttonpusher.bluetooth.BluetoothCustomManager;
@@ -75,10 +77,20 @@ public class BtPusherService extends Service {
 
     private static final int BLUETOOTH_STATE_TIMEOUT = 2500;
 
+    private Handler mHandler = new Handler(Looper.getMainLooper());
+
     protected ScheduledExecutorService mExecutor = Executors.newScheduledThreadPool(1);
 
     public void setListener(IPushBtnListener listener) {
         this.mListener = listener;
+    }
+
+    public void setDeviceName(String deviceName) {
+        this.mDeviceName = deviceName;
+    }
+
+    public void setPassword(String password) {
+        this.mPassword = password;
     }
 
     /*
@@ -99,6 +111,8 @@ public class BtPusherService extends Service {
     @Override
     public void onCreate() {
 
+        Log.i(TAG, "service create");
+
         //initiate bluetooth manager object used to manage all Android Bluetooth API
         btManager = new BluetoothCustomManager(this);
 
@@ -111,6 +125,7 @@ public class BtPusherService extends Service {
         SharedPreferences pref = getSharedPreferences(SharedPrefConst.PREFERENCES, Context.MODE_PRIVATE);
         mDeviceName = pref.getString(SharedPrefConst.DEVICE_NAME_FIELD, SharedPrefConst.DEFAULT_DEVICE_NAME);
         mPassword = pref.getString(SharedPrefConst.DEVICE_PASSWORD_FIELD, SharedPrefConst.DEFAULT_PASSWORD);
+
     }
 
     @Override
@@ -283,16 +298,26 @@ public class BtPusherService extends Service {
     };
 
 
-    private void changeState(ButtonPusherState state) {
-        if (mListener != null) {
-            mListener.onChangeState(state);
-        }
+    private void changeState(final ButtonPusherState state) {
+        mHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                if (mListener != null) {
+                    mListener.onChangeState(state);
+                }
+            }
+        });
     }
 
-    private void dispatchError(ButtonPusherError error) {
-        if (mListener != null) {
-            mListener.onError(error);
-        }
+    private void dispatchError(final ButtonPusherError error) {
+        mHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                if (mListener != null) {
+                    mListener.onError(error);
+                }
+            }
+        });
     }
 
     /**

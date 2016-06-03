@@ -18,14 +18,14 @@
  */
 package com.github.akinaru.roboticbuttonpusher.activity;
 
-import android.content.ComponentName;
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.IBinder;
 import android.support.design.widget.FloatingActionButton;
 import android.util.Log;
 import android.view.Menu;
@@ -34,12 +34,13 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.Toast;
 
+import com.github.akinaru.roboticbuttonpusher.PushSingleton;
 import com.github.akinaru.roboticbuttonpusher.R;
 import com.github.akinaru.roboticbuttonpusher.constant.SharedPrefConst;
 import com.github.akinaru.roboticbuttonpusher.inter.IPushBtnListener;
+import com.github.akinaru.roboticbuttonpusher.inter.ISingletonListener;
 import com.github.akinaru.roboticbuttonpusher.model.ButtonPusherError;
 import com.github.akinaru.roboticbuttonpusher.model.ButtonPusherState;
-import com.github.akinaru.roboticbuttonpusher.service.BtPusherService;
 import com.github.silvestrpredko.dotprogressbar.DotProgressBar;
 
 
@@ -48,7 +49,7 @@ import com.github.silvestrpredko.dotprogressbar.DotProgressBar;
  *
  * @author Bertrand Martel
  */
-public class PushActivity extends BaseActivity {
+public class PushActivity extends BaseActivity implements ISingletonListener {
 
     private String TAG = this.getClass().getName();
 
@@ -62,10 +63,14 @@ public class PushActivity extends BaseActivity {
 
     private FloatingActionButton button;
 
+    private PushSingleton mSingleton;
+
     /**
      * shared preference object.
      */
     private SharedPreferences sharedPref;
+
+    private static final int REQUEST_PERMISSION_COARSE_LOCATION = 2;
 
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -151,6 +156,9 @@ public class PushActivity extends BaseActivity {
 
         mImgSelection = (FloatingActionButton) findViewById(R.id.img_selection);
 
+        mSingleton = PushSingleton.getInstance();
+        mSingleton.setSingletonListener(this);
+
         button = (FloatingActionButton) findViewById(R.id.fab);
         button.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -167,14 +175,102 @@ public class PushActivity extends BaseActivity {
 
 
                 clearReplaceDebugTv("Scanning for device ...");
-                mService.startPushTask();
+
+                mSingleton.startPushTask();
             }
         });
 
-        //bind to service
-        Intent intent = new Intent(this, BtPusherService.class);
-        mBound = bindService(intent, mServiceConnection, BIND_AUTO_CREATE);
+        if (Build.VERSION.SDK_INT >= 23) {
+            if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                Log.i(TAG, "requesting location permission");
+                requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_PERMISSION_COARSE_LOCATION);
+            }
+        }
+
+        Log.i(TAG, "ok");
+        mSingleton.bindService(getApplicationContext());
     }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case REQUEST_PERMISSION_COARSE_LOCATION: {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                } else {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(PushActivity.this, "permission coarse location required for ble scan", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+            }
+        }
+    }
+
+    private IPushBtnListener mBtnListener = new IPushBtnListener() {
+        @Override
+        public void onChangeState(ButtonPusherState newState) {
+
+            switch (newState) {
+                case SCAN:
+                    break;
+                case DEVICE_FOUND:
+                    break;
+                case CONNECT:
+                    appendDebugTv("Connecting to device ...");
+                    break;
+                case SEND_COMMAND:
+                    appendDebugTv("Sending command ...");
+                    break;
+                case PROCESS_END:
+                    appendDebugTv("Receive command success ...");
+
+                    if (mImgSelection != null && button != null) {
+
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                button.setVisibility(View.GONE);
+                                dotProgressBar.setVisibility(View.GONE);
+                                mImgSelection.setVisibility(View.VISIBLE);
+                                mImgSelection.clearAnimation();
+                                mImgSelection.startAnimation(mAnimationScaleUp);
+                            }
+                        });
+
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        @Override
+        public void onError(ButtonPusherError error) {
+            switch (error) {
+                case SCAN_TIMEOUT:
+                    appendDebugTv("Error, device not found");
+                    break;
+                case CONNECTION_TIMEOUT:
+                    appendDebugTv("Error, connection failed");
+                    break;
+                case PUSH_FAILURE:
+                    appendDebugTv("Command failure...");
+                    break;
+                case NOTIFICATION_TIMEOUT:
+                    break;
+                case BLUETOOTH_STATE_TIMEOUT:
+                    appendDebugTv("Bluetooth state timeout...");
+                    break;
+                default:
+                    break;
+            }
+            showFailure();
+        }
+    };
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
@@ -194,16 +290,9 @@ public class PushActivity extends BaseActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mService.stopPushTask();
+        mSingleton.stopPushTask();
+        mSingleton.unbindService(getApplicationContext());
         Log.v(TAG, "onDestroy");
-        try {
-            if (mBound) {
-                unbindService(mServiceConnection);
-                mBound = false;
-            }
-        } catch (IllegalArgumentException e) {
-            e.printStackTrace();
-        }
     }
 
     @Override
@@ -215,91 +304,12 @@ public class PushActivity extends BaseActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        if (mService != null)
-            mService.stopPushTask();
+        mSingleton.stopPushTask();
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
     }
-
-    /**
-     * Manage Bluetooth Service
-     */
-    private ServiceConnection mServiceConnection = new ServiceConnection() {
-
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-
-            Log.v(TAG, "connected to service");
-            mService = ((BtPusherService.LocalBinder) service).getService();
-            mService.setListener(new IPushBtnListener() {
-                @Override
-                public void onChangeState(ButtonPusherState newState) {
-
-                    switch (newState) {
-                        case SCAN:
-                            break;
-                        case DEVICE_FOUND:
-                            break;
-                        case CONNECT:
-                            appendDebugTv("Connecting to device ...");
-                            break;
-                        case SEND_COMMAND:
-                            appendDebugTv("Sending command ...");
-                            break;
-                        case PROCESS_END:
-                            appendDebugTv("Receive command success ...");
-
-                            if (mImgSelection != null && button != null) {
-
-                                runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        button.setVisibility(View.GONE);
-                                        dotProgressBar.setVisibility(View.GONE);
-                                        mImgSelection.setVisibility(View.VISIBLE);
-                                        mImgSelection.clearAnimation();
-                                        mImgSelection.startAnimation(mAnimationScaleUp);
-                                    }
-                                });
-
-                            }
-                            break;
-                        default:
-                            break;
-                    }
-                }
-
-                @Override
-                public void onError(ButtonPusherError error) {
-                    switch (error) {
-                        case SCAN_TIMEOUT:
-                            appendDebugTv("Error, device not found");
-                            break;
-                        case CONNECTION_TIMEOUT:
-                            appendDebugTv("Error, connection failed");
-                            break;
-                        case PUSH_FAILURE:
-                            appendDebugTv("Command failure...");
-                            break;
-                        case NOTIFICATION_TIMEOUT:
-                            break;
-                        case BLUETOOTH_STATE_TIMEOUT:
-                            appendDebugTv("Bluetooth state timeout...");
-                            break;
-                        default:
-                            break;
-                    }
-                    showFailure();
-                }
-            });
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-        }
-    };
 
     @Override
     public String getPassword() {
@@ -329,6 +339,7 @@ public class PushActivity extends BaseActivity {
             editor.putString(SharedPrefConst.DEVICE_NAME_FIELD, deviceName);
             editor.commit();
             mDeviceName = deviceName;
+            mSingleton.setDeviceName(mDeviceName);
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -346,6 +357,7 @@ public class PushActivity extends BaseActivity {
             editor.putString(SharedPrefConst.DEVICE_PASSWORD_FIELD, pass);
             editor.commit();
             mPassword = pass;
+            mSingleton.setPassword(mPassword);
         }
     }
 
@@ -377,5 +389,12 @@ public class PushActivity extends BaseActivity {
                 debugTv.setText(text + System.getProperty("line.separator"));
             }
         });
+    }
+
+    @Override
+    public void onBind() {
+        if (mSingleton != null) {
+            mSingleton.setServiceListener(mBtnListener);
+        }
     }
 }

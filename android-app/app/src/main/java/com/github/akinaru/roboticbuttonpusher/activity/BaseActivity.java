@@ -19,7 +19,6 @@
 package com.github.akinaru.roboticbuttonpusher.activity;
 
 import android.bluetooth.BluetoothAdapter;
-import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -39,11 +38,7 @@ import android.widget.Toast;
 import com.github.akinaru.roboticbuttonpusher.R;
 import com.github.akinaru.roboticbuttonpusher.inter.IButtonPusher;
 import com.github.akinaru.roboticbuttonpusher.menu.MenuUtils;
-import com.github.akinaru.roboticbuttonpusher.service.BtPusherService;
 import com.github.silvestrpredko.dotprogressbar.DotProgressBar;
-
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * Abstract activity for all activities in Bluetooth LE Analyzer
@@ -53,11 +48,6 @@ import java.util.concurrent.ScheduledExecutorService;
 public abstract class BaseActivity extends AppCompatActivity implements IButtonPusher {
 
     private final static String TAG = BaseActivity.class.getSimpleName();
-
-    /**
-     * define is service is bound or not
-     */
-    protected boolean mBound = false;
 
     /**
      * application toolbar
@@ -78,11 +68,6 @@ public abstract class BaseActivity extends AppCompatActivity implements IButtonP
      * navigation view
      */
     protected NavigationView nvDrawer;
-
-    /**
-     * bluetooth analyzer service
-     */
-    protected BtPusherService mService = null;
 
     /**
      * activity layout ressource id
