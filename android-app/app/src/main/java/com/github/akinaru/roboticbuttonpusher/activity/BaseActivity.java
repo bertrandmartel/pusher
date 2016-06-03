@@ -29,7 +29,6 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -40,14 +39,11 @@ import android.widget.Toast;
 import com.github.akinaru.roboticbuttonpusher.R;
 import com.github.akinaru.roboticbuttonpusher.inter.IButtonPusher;
 import com.github.akinaru.roboticbuttonpusher.menu.MenuUtils;
-import com.github.akinaru.roboticbuttonpusher.model.ButtonPusherState;
 import com.github.akinaru.roboticbuttonpusher.service.BtPusherService;
 import com.github.silvestrpredko.dotprogressbar.DotProgressBar;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Abstract activity for all activities in Bluetooth LE Analyzer
@@ -89,11 +85,6 @@ public abstract class BaseActivity extends AppCompatActivity implements IButtonP
     protected BtPusherService mService = null;
 
     /**
-     * define if bluetooth is enabled on device
-     */
-    protected final static int REQUEST_ENABLE_BT = 1;
-
-    /**
      * activity layout ressource id
      */
     private int layoutId;
@@ -113,12 +104,6 @@ public abstract class BaseActivity extends AppCompatActivity implements IButtonP
     }
 
     protected TextView debugTv;
-
-    protected ButtonPusherState mState = ButtonPusherState.NONE;
-
-    protected ScheduledExecutorService mExecutor = Executors.newScheduledThreadPool(1);
-
-    protected ScheduledFuture mTimeoutTask;
 
     protected FloatingActionButton mImgSelection;
 
@@ -163,13 +148,6 @@ public abstract class BaseActivity extends AppCompatActivity implements IButtonP
         if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
             Toast.makeText(this, getResources().getString(R.string.ble_not_supported), Toast.LENGTH_SHORT).show();
             finish();
-        }
-
-        //setup bluetooth adapter
-        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        if (!mBluetoothAdapter.isEnabled()) {
-            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }
     }
 
@@ -223,33 +201,6 @@ public abstract class BaseActivity extends AppCompatActivity implements IButtonP
             this.mDrawer.closeDrawer(GravityCompat.START);
         } else {
             super.onBackPressed();
-        }
-    }
-
-    /**
-     * trigger a BLE scan
-     */
-    public void triggerNewScan() {
-
-        if (mService != null && !mService.isScanning()) {
-
-            Log.v(TAG, "start scan");
-
-            mTimeoutTask = mExecutor.schedule(new Runnable() {
-                @Override
-                public void run() {
-                    mService.clearScanningList();
-                    mService.stopScan();
-                    appendDebugTv("Error, device not found");
-                    mState = ButtonPusherState.NONE;
-                    showFailure();
-
-                }
-            }, 2500, TimeUnit.MILLISECONDS);
-
-            mService.clearScanningList();
-            mService.disconnectall();
-            mService.startScan();
         }
     }
 

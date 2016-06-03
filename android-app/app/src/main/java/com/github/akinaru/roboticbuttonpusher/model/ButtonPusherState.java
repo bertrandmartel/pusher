@@ -5,8 +5,10 @@ package com.github.akinaru.roboticbuttonpusher.model;
  */
 public enum ButtonPusherState {
     NONE,
+    PROCESS_END,
     SCAN,
     DEVICE_FOUND,
     CONNECT,
-    SEND_COMMAND
+    WAIT_DEVICE_START,
+    WAIT_BLUETOOTH_STATE, SEND_COMMAND
 }
