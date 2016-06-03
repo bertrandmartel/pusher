@@ -74,6 +74,8 @@ public class BluetoothDeviceConn implements IBluetoothDeviceConn {
 
     private boolean connected = false;
 
+    private boolean remove = false;
+
     /**
      * Build Bluetooth device connection
      *
@@ -100,18 +102,10 @@ public class BluetoothDeviceConn implements IBluetoothDeviceConn {
                     connected = false;
                     Log.i(TAG, "Disconnected from GATT server.");
 
-                    try {
-                        JSONObject object = new JSONObject();
-                        object.put(JsonConstants.BT_ADDRESS, getAddress());
-                        object.put(JsonConstants.BT_DEVICE_NAME, getDeviceName());
-
-                        ArrayList<String> values = new ArrayList<String>();
-                        values.add(object.toString());
-
-                        //when device is fully intitialized broadcast service discovery
-                        manager.broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_DISCONNECTED, values);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
+                    if (status != 133) {
+                        manager.broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_DISCONNECTED, new ArrayList<String>());
+                    } else {
+                        manager.broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_RETRY, new ArrayList<String>());
                     }
 
                     if (manager.getWaitingMap().containsKey(deviceAddr)) {
@@ -122,6 +116,10 @@ public class BluetoothDeviceConn implements IBluetoothDeviceConn {
                     if (BluetoothDeviceConn.this.gatt != null) {
                         Log.i(TAG, "connection close clean");
                         BluetoothDeviceConn.this.gatt.close();
+                    }
+                    if (remove) {
+                        manager.getConnectionList().remove(deviceAddr);
+                        manager.broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_REMOVED, new ArrayList<String>());
                     }
                 }
             }
@@ -292,5 +290,10 @@ public class BluetoothDeviceConn implements IBluetoothDeviceConn {
     @Override
     public void setConnected(boolean state) {
         connected = state;
+    }
+
+    @Override
+    public void mustRemove(boolean remove) {
+        this.remove = remove;
     }
 }

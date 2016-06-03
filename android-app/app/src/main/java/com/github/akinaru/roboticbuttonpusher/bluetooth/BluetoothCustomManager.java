@@ -140,7 +140,6 @@ public class BluetoothCustomManager implements IBluetoothCustomManager {
         this.context = context;
     }
 
-
     @SuppressLint("NewApi")
     public void init(Context context) {
 
@@ -175,20 +174,15 @@ public class BluetoothCustomManager implements IBluetoothCustomManager {
 
         if (scanningList.containsKey(device.getAddress())) {
 
-
         } else {
             Log.i(TAG, "found a RFdroid");
-
-
         }
-
     }
 
     private void dispatchBtDevices(BluetoothDevice device, int rssi, final byte[] scanRecord) {
 
         if (scanningList.containsKey(device.getAddress())) {
-
-
+            
         } else {
 
             Log.i(TAG, "found a new Bluetooth device : " + device.getName() + " : " + device.getAddress());
@@ -441,7 +435,7 @@ public class BluetoothCustomManager implements IBluetoothCustomManager {
     }
 
     @SuppressLint("NewApi")
-    public boolean disconnect(final String deviceAddress) {
+    public boolean disconnectDevice(final String deviceAddress, final boolean remove) {
 
         if (mBluetoothAdapter == null || deviceAddress == null) {
             Log.w(TAG, "BluetoothAdapter not initialized or unspecified address.");
@@ -450,7 +444,7 @@ public class BluetoothCustomManager implements IBluetoothCustomManager {
 
         if (bluetoothConnectionList.containsKey(deviceAddress)) {
 
-            if (bluetoothConnectionList.get(deviceAddress).getBluetoothGatt() != null) {
+            if (bluetoothConnectionList.get(deviceAddress).getBluetoothGatt() != null && bluetoothConnectionList.get(deviceAddress).isConnected()) {
                 Log.i(TAG, "disconnect device");
                 bluetoothConnectionList.get(deviceAddress).getBluetoothGatt().disconnect();
 
@@ -462,19 +456,50 @@ public class BluetoothCustomManager implements IBluetoothCustomManager {
                             Log.i(TAG, "connection forced close");
                             bluetoothConnectionList.get(deviceAddress).getBluetoothGatt().close();
                             waitingForDisconnectionList.remove(deviceAddress);
+
+                            if (remove) {
+                                Log.i(TAG, "removing device ...");
+                                bluetoothConnectionList.remove(deviceAddress);
+                                try {
+                                    Thread.sleep(500);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                                broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_REMOVED, new ArrayList<String>());
+                            }
                         }
                     }, 1000, TimeUnit.MILLISECONDS);
 
                     waitingForDisconnectionList.put(deviceAddress, task);
                 }
-                bluetoothConnectionList.get(deviceAddress).setConnected(false);
-            }
 
+                bluetoothConnectionList.get(deviceAddress).setConnected(false);
+
+            } else {
+
+                Log.i(TAG, "removing not connected device");
+
+                if (remove) {
+                    Log.i(TAG, "removing device ...");
+                    bluetoothConnectionList.remove(deviceAddress);
+                    waitingForDisconnectionList.remove(deviceAddress);
+                    return false;
+                }
+            }
             return true;
         } else {
             Log.e(TAG, "device " + deviceAddress + " not found in list");
         }
         return false;
+    }
+
+    @SuppressLint("NewApi")
+    public boolean disconnect(final String deviceAddress) {
+        return disconnectDevice(deviceAddress, false);
+    }
+
+    public boolean disconnectAndRemove(final String deviceAddress) {
+        return disconnectDevice(deviceAddress, true);
     }
 
     public void disconnectAll() {

@@ -19,16 +19,31 @@
 package com.github.akinaru.roboticbuttonpusher.service;
 
 import android.app.Service;
-import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothAdapter;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.os.Binder;
 import android.os.IBinder;
+import android.util.Log;
 
 import com.github.akinaru.roboticbuttonpusher.bluetooth.BluetoothCustomManager;
-import com.github.akinaru.roboticbuttonpusher.bluetooth.connection.IBluetoothDeviceConn;
+import com.github.akinaru.roboticbuttonpusher.bluetooth.events.BluetoothEvents;
+import com.github.akinaru.roboticbuttonpusher.bluetooth.events.BluetoothObject;
+import com.github.akinaru.roboticbuttonpusher.bluetooth.listener.IPushListener;
+import com.github.akinaru.roboticbuttonpusher.bluetooth.rfduino.IRfduinoDevice;
+import com.github.akinaru.roboticbuttonpusher.constant.SharedPrefConst;
+import com.github.akinaru.roboticbuttonpusher.inter.IPushBtnListener;
+import com.github.akinaru.roboticbuttonpusher.model.ButtonPusherError;
+import com.github.akinaru.roboticbuttonpusher.model.ButtonPusherState;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Service persisting bluetooth connection
@@ -44,6 +59,28 @@ public class BtPusherService extends Service {
      */
     private final IBinder mBinder = new LocalBinder();
 
+    private String mDeviceAdress;
+
+    private ScheduledFuture mTimeoutTask;
+
+    private ButtonPusherState mState = ButtonPusherState.NONE;
+
+    private IPushBtnListener mListener;
+
+    private static final int CONNECTION_TIMEOUT = 5000;
+
+    private static final int SCAN_TIMEOUT = 2500;
+
+    private static final int NOTIFICATION_TIMEOUT = 3000;
+
+    private static final int BLUETOOTH_STATE_TIMEOUT = 2500;
+
+    protected ScheduledExecutorService mExecutor = Executors.newScheduledThreadPool(1);
+
+    public void setListener(IPushBtnListener listener) {
+        this.mListener = listener;
+    }
+
     /*
      * LocalBInder that render public getService() for public access
      */
@@ -55,6 +92,10 @@ public class BtPusherService extends Service {
 
     private BluetoothCustomManager btManager = null;
 
+    private String mDeviceName;
+
+    private String mPassword;
+
     @Override
     public void onCreate() {
 
@@ -63,11 +104,19 @@ public class BtPusherService extends Service {
 
         //initialize bluetooth adapter
         btManager.init(this);
+
+        //register bluetooth event broadcast receiver
+        registerReceiver(mBluetoothReceiver, makeGattUpdateIntentFilter());
+
+        SharedPreferences pref = getSharedPreferences(SharedPrefConst.PREFERENCES, Context.MODE_PRIVATE);
+        mDeviceName = pref.getString(SharedPrefConst.DEVICE_NAME_FIELD, SharedPrefConst.DEFAULT_DEVICE_NAME);
+        mPassword = pref.getString(SharedPrefConst.DEVICE_PASSWORD_FIELD, SharedPrefConst.DEFAULT_PASSWORD);
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
+        unregisterReceiver(mBluetoothReceiver);
     }
 
     @Override
@@ -76,79 +125,269 @@ public class BtPusherService extends Service {
     }
 
     /**
-     * retrieve scanning list
-     *
-     * @return
+     * broadcast receiver to receive bluetooth events
      */
-    public Map<String, BluetoothDevice> getScanningList() {
-        return btManager.getScanningList();
+    private final BroadcastReceiver mBluetoothReceiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+            final String action = intent.getAction();
+
+            if (BluetoothEvents.BT_EVENT_SCAN_START.equals(action)) {
+
+                Log.v(TAG, "Scan has started");
+            } else if (BluetoothEvents.BT_EVENT_DEVICE_REMOVED.equals(action)) {
+
+                Log.i(TAG, "received : BT_EVENT_DEVICE_REMOVED");
+                switch (mState) {
+                    case WAIT_DEVICE_START:
+                        mState = ButtonPusherState.NONE;
+                        startPush.run();
+                        break;
+                    default:
+                        break;
+                }
+
+            } else if (BluetoothEvents.BT_EVENT_SCAN_END.equals(action)) {
+
+                Log.v(TAG, "Scan has ended");
+                if (mState == ButtonPusherState.DEVICE_FOUND) {
+                    mState = ButtonPusherState.CONNECT;
+
+                    changeState(mState);
+
+                    mTimeoutTask = mExecutor.schedule(new Runnable() {
+                        @Override
+                        public void run() {
+                            dispatchError(ButtonPusherError.CONNECTION_TIMEOUT);
+                            btManager.disconnectAndRemove(mDeviceAdress);
+                            mState = ButtonPusherState.NONE;
+                            changeState(mState);
+
+                        }
+                    }, CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
+
+                    Log.v(TAG, "btManager => " + btManager.getConnectionList().size());
+                    btManager.connect(mDeviceAdress);
+                }
+            } else if (BluetoothEvents.BT_EVENT_DEVICE_RETRY.equals(action)) {
+                Log.i(TAG, "RETRYING");
+                btManager.connect(mDeviceAdress);
+            } else if (BluetoothEvents.BT_EVENT_DEVICE_DISCOVERED.equals(action)) {
+
+                if (mState == ButtonPusherState.SCAN) {
+
+                    Log.v(TAG, "New device has been discovered");
+
+                    final BluetoothObject btDeviceTmp = BluetoothObject.parseArrayList(intent);
+
+                    if (btDeviceTmp != null && btDeviceTmp.getDeviceName().equals(mDeviceName)) {
+                        Log.v(TAG, "found device " + mDeviceName);
+                        if (mTimeoutTask != null) {
+                            mTimeoutTask.cancel(true);
+                        }
+                        mState = ButtonPusherState.DEVICE_FOUND;
+                        changeState(mState);
+                        mDeviceAdress = btDeviceTmp.getDeviceAddress();
+                        btManager.stopScan();
+                    }
+                }
+
+            } else if (BluetoothEvents.BT_EVENT_DEVICE_NOTIFICATION.equals(action)) {
+
+                Log.v(TAG, "Device notification : " + mState);
+                if (mState == ButtonPusherState.SEND_COMMAND) {
+
+                    if (mTimeoutTask != null) {
+                        mTimeoutTask.cancel(true);
+                    }
+
+                    btManager.disconnectAndRemove(mDeviceAdress);
+                    ArrayList<String> actionsStr = intent.getStringArrayListExtra("");
+                    Log.v(TAG, "Receive notification : " + actionsStr.get(0));
+                    mState = ButtonPusherState.PROCESS_END;
+                    changeState(mState);
+                    mState = ButtonPusherState.NONE;
+                    changeState(mState);
+                }
+            } else if (BluetoothEvents.BT_EVENT_DEVICE_DISCONNECTED.equals(action)) {
+
+                Log.v(TAG, "Device disconnected : " + mState);
+                if (mState == ButtonPusherState.CONNECT) {
+                    mState = ButtonPusherState.NONE;
+                    changeState(mState);
+                    dispatchError(ButtonPusherError.CONNECTION_TIMEOUT);
+                    if (mTimeoutTask != null) {
+                        mTimeoutTask.cancel(true);
+                    }
+                }
+            } else if (BluetoothEvents.BT_EVENT_DEVICE_CONNECTED.equals(action)) {
+
+                Log.v(TAG, "device has been connected : " + mState);
+
+                if (mState == ButtonPusherState.CONNECT) {
+
+                    mState = ButtonPusherState.SEND_COMMAND;
+                    changeState(mState);
+                    if (mTimeoutTask != null) {
+                        mTimeoutTask.cancel(true);
+                    }
+
+                    if (btManager.getConnectionList().get(mDeviceAdress).getDevice() instanceof IRfduinoDevice) {
+
+                        IRfduinoDevice device = (IRfduinoDevice) btManager.getConnectionList().get(mDeviceAdress).getDevice();
+
+                        mTimeoutTask = mExecutor.schedule(new Runnable() {
+                            @Override
+                            public void run() {
+                                dispatchError(ButtonPusherError.NOTIFICATION_TIMEOUT);
+                                btManager.disconnectAndRemove(mDeviceAdress);
+                                mState = ButtonPusherState.NONE;
+                                changeState(mState);
+
+                            }
+                        }, NOTIFICATION_TIMEOUT, TimeUnit.MILLISECONDS);
+
+                        device.sendPush(mPassword, new IPushListener() {
+                            @Override
+                            public void onPushFailure() {
+                            }
+
+                            @Override
+                            public void onPushSuccess() {
+                            }
+                        });
+                    }
+                }
+            } else if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
+
+                final int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE,
+                        BluetoothAdapter.ERROR);
+
+                if (state == BluetoothAdapter.STATE_OFF) {
+
+                    Log.e(TAG, "Bluetooth state change to STATE_OFF");
+
+                } else if (state == BluetoothAdapter.STATE_ON) {
+
+                    if (mState == ButtonPusherState.WAIT_BLUETOOTH_STATE) {
+                        if (mTimeoutTask != null) {
+                            mTimeoutTask.cancel(true);
+                        }
+                        push.run();
+                    }
+                }
+            }
+        }
+    };
+
+
+    private void changeState(ButtonPusherState state) {
+        if (mListener != null) {
+            mListener.onChangeState(state);
+        }
+    }
+
+    private void dispatchError(ButtonPusherError error) {
+        if (mListener != null) {
+            mListener.onError(error);
+        }
     }
 
     /**
-     * get scanning state
+     * add filter to intent to receive notification from bluetooth service
      *
-     * @return
+     * @return intent filter
      */
-    public boolean isScanning() {
-        return btManager.isScanning();
+    private static IntentFilter makeGattUpdateIntentFilter() {
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_SCAN_START);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_SCAN_END);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_DISCOVERED);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_CONNECTED);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_DISCONNECTED);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_NOTIFICATION);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_REMOVED);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_RETRY);
+        intentFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+        return intentFilter;
     }
 
-    /**
-     * stop bluetooth scan
-     */
-    public void stopScan() {
+    public Runnable startPush = new Runnable() {
+        @Override
+        public void run() {
+
+            mTimeoutTask = mExecutor.schedule(new Runnable() {
+                @Override
+                public void run() {
+                    btManager.stopScan();
+                    btManager.clearScanningList();
+                    mState = ButtonPusherState.NONE;
+                    changeState(mState);
+                    dispatchError(ButtonPusherError.SCAN_TIMEOUT);
+
+                }
+            }, SCAN_TIMEOUT, TimeUnit.MILLISECONDS);
+
+            mState = ButtonPusherState.SCAN;
+
+            btManager.scanLeDevice();
+        }
+    };
+
+    public Runnable push = new Runnable() {
+        @Override
+        public void run() {
+            Log.v(TAG, "start scan");
+
+            btManager.stopScan();
+            btManager.clearScanningList();
+
+            if (btManager.getConnectionList().containsKey(mDeviceAdress)) {
+
+                boolean status = btManager.disconnectAndRemove(mDeviceAdress);
+
+                if (status) {
+                    mState = ButtonPusherState.WAIT_DEVICE_START;
+                    return;
+                }
+            }
+            startPush.run();
+        }
+    };
+
+    public void startPushTask() {
+
+        if (mState == ButtonPusherState.NONE) {
+
+            if (!BluetoothAdapter.getDefaultAdapter().isEnabled()) {
+                mTimeoutTask = mExecutor.schedule(new Runnable() {
+                    @Override
+                    public void run() {
+                        dispatchError(ButtonPusherError.BLUETOOTH_STATE_TIMEOUT);
+                        mState = ButtonPusherState.NONE;
+                        changeState(mState);
+
+                    }
+                }, BLUETOOTH_STATE_TIMEOUT, TimeUnit.MILLISECONDS);
+                mState = ButtonPusherState.WAIT_BLUETOOTH_STATE;
+                BluetoothAdapter.getDefaultAdapter().enable();
+            } else {
+                push.run();
+            }
+        }
+    }
+
+    public void stopPushTask() {
+
+        if (mTimeoutTask != null) {
+            mTimeoutTask.cancel(true);
+        }
+        mListener = null;
         btManager.stopScan();
-    }
-
-    /**
-     * connect to a bluetooth device
-     *
-     * @param deviceAddress
-     */
-    public void connect(String deviceAddress) {
-        btManager.connect(deviceAddress);
-    }
-
-    /**
-     * start Bluetooth scan
-     *
-     * @return
-     */
-    public boolean startScan() {
-        return btManager.scanLeDevice();
-    }
-
-    /**
-     * clear bluetooth scanning list
-     */
-    public void clearScanningList() {
         btManager.clearScanningList();
+        btManager.disconnectAndRemove(mDeviceAdress);
+        mState = ButtonPusherState.NONE;
     }
-
-    /**
-     * disconnect a Bluetooth device by address
-     *
-     * @param deviceAddress bluetooth device address
-     * @return true if disconection is successfull
-     */
-    public boolean disconnect(String deviceAddress) {
-        return btManager.disconnect(deviceAddress);
-    }
-
-    /**
-     * disconnect all bluetooth devices
-     */
-    public void disconnectall() {
-        btManager.disconnectAll();
-    }
-
-    /**
-     * Retrieve all devices associated
-     *
-     * @return
-     */
-    public HashMap<String, IBluetoothDeviceConn> getConnectionList() {
-        return btManager.getConnectionList();
-    }
-
 }

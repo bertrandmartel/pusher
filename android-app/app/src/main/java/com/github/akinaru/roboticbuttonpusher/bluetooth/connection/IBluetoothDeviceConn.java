@@ -74,4 +74,6 @@ public interface IBluetoothDeviceConn {
     void disconnect();
 
     void setConnected(boolean state);
+
+    void mustRemove(boolean remove);
 }
