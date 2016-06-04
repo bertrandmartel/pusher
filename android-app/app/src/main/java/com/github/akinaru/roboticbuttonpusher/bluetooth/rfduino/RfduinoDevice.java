@@ -103,7 +103,11 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
     @Override
     public void sendPush(String password, IPushListener listener) {
-        getConn().writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, password.getBytes(), listener);
+        byte[] data = new byte[password.getBytes().length + 2];
+        data[0] = 0;
+        System.arraycopy(password.getBytes(), 0, data, 1, password.getBytes().length);
+        data[data.length - 1] = '\0';
+        getConn().writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, data, listener);
     }
 
 }
