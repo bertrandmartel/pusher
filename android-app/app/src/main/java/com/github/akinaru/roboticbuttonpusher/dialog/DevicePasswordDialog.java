@@ -60,13 +60,19 @@ public class DevicePasswordDialog extends AlertDialog {
             }
         });
 
+        final CheckBox passwordUploadCb = (CheckBox) dialoglayout.findViewById(R.id.device_password_set_ondevice_cb);
+
         checkbox.setChecked(true);
+        passwordUploadCb.setChecked(false);
 
         setTitle(R.string.rfduino_device_password);
         setButton(DialogInterface.BUTTON_POSITIVE, activity.getContext().getResources().getString(R.string.dialog_ok), new OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 activity.setPassword(devicePassEt.getText().toString());
+                if (passwordUploadCb.isChecked()) {
+                    activity.uploadPassword(devicePassEt.getText().toString());
+                }
             }
         });
 

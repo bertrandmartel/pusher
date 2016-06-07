@@ -382,6 +382,13 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
         });
     }
 
+    @Override
+    public void uploadPassword(String pass) {
+        if (pass != null && !pass.equals("")) {
+            mSingleton.uploadPassword(pass);
+        }
+    }
+
     private void clearReplaceDebugTv(final String text) {
         runOnUiThread(new Runnable() {
             @Override

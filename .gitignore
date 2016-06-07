@@ -12,6 +12,8 @@ android-app/.idea/libraries
 .DS_Store
 android-app/app/build
 android-app/build
+android-app/app/src/main/libs
+android-app/app/src/main/obj
 rfdroid/build
 rfdroid/app/build
 rfduino-build/*.o
