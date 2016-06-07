@@ -1,5 +1,5 @@
 PORT=/dev/ttyUSB0
-OBJECTS=rfduino-makefile/RFduino/libraries/RFduinoBLE/RFduinoBLE.o rfduino-makefile/RFduino/libraries/Servo/Servo.o main.o 
+OBJECTS=rfduino-makefile/RFduino/libraries/RFduinoBLE/RFduinoBLE.o rfduino-makefile/RFduino/libraries/Servo/Servo.o main.o AES.o
 HEADERS=-Irfduino-makefile/RFduino/libraries/RFduinoBLE -Irfduino-makefile/RFduino/libraries/Servo -I.
 
 export PORT

@@ -21,4 +21,5 @@ public interface IButtonPusher {
 
     void setDebugMode(boolean status);
 
+    void uploadPassword(String pass);
 }

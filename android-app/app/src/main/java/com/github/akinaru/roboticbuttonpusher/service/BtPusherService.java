@@ -57,6 +57,15 @@ public class BtPusherService extends Service {
     private String TAG = BtPusherService.class.getSimpleName();
 
     /**
+     * load native module entry point
+     */
+    static {
+        System.loadLibrary("buttonpusher");
+    }
+
+    public static native byte[] encrypt(String message);
+
+    /**
      * Service binder
      */
     private final IBinder mBinder = new LocalBinder();
@@ -415,4 +424,8 @@ public class BtPusherService extends Service {
         btManager.disconnectAndRemove(mDeviceAdress);
         mState = ButtonPusherState.NONE;
     }
+
+    public void uploadPassword(String pass) {
+    }
+
 }

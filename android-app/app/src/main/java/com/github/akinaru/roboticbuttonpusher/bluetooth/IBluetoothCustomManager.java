@@ -22,6 +22,7 @@ import android.bluetooth.BluetoothGatt;
 
 import com.github.akinaru.roboticbuttonpusher.bluetooth.connection.IBluetoothDeviceConn;
 import com.github.akinaru.roboticbuttonpusher.bluetooth.listener.IPushListener;
+import com.github.akinaru.roboticbuttonpusher.service.BtPusherService;
 import com.github.akinaru.roboticbuttonpusher.utils.ManualResetEvent;
 
 import java.util.ArrayList;
@@ -50,4 +51,6 @@ public interface IBluetoothCustomManager {
     HashMap<String, IBluetoothDeviceConn> getConnectionList();
 
     HashMap<String, ScheduledFuture<?>> getWaitingMap();
+
+    BtPusherService getService();
 }

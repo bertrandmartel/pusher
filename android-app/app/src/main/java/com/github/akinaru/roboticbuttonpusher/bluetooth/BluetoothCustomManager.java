@@ -35,6 +35,7 @@ import com.github.akinaru.roboticbuttonpusher.bluetooth.connection.IBluetoothDev
 import com.github.akinaru.roboticbuttonpusher.bluetooth.events.BluetoothEvents;
 import com.github.akinaru.roboticbuttonpusher.bluetooth.listener.IPushListener;
 import com.github.akinaru.roboticbuttonpusher.constant.JsonConstants;
+import com.github.akinaru.roboticbuttonpusher.service.BtPusherService;
 import com.github.akinaru.roboticbuttonpusher.utils.ManualResetEvent;
 
 import org.json.JSONException;
@@ -133,11 +134,14 @@ public class BluetoothCustomManager implements IBluetoothCustomManager {
 
     private HashMap<String, ScheduledFuture<?>> waitingForDisconnectionList = new HashMap<>();
 
+    private BtPusherService service;
+
     /**
      * Build bluetooth manager
      */
-    public BluetoothCustomManager(Context context) {
-        this.context = context;
+    public BluetoothCustomManager(BtPusherService service) {
+        this.service = service;
+        this.context = service.getBaseContext();
     }
 
     @SuppressLint("NewApi")
@@ -182,7 +186,7 @@ public class BluetoothCustomManager implements IBluetoothCustomManager {
     private void dispatchBtDevices(BluetoothDevice device, int rssi, final byte[] scanRecord) {
 
         if (scanningList.containsKey(device.getAddress())) {
-            
+
         } else {
 
             Log.i(TAG, "found a new Bluetooth device : " + device.getName() + " : " + device.getAddress());
@@ -512,5 +516,9 @@ public class BluetoothCustomManager implements IBluetoothCustomManager {
 
     public HashMap<String, BluetoothDevice> getScanningList() {
         return scanningList;
+    }
+
+    public BtPusherService getService() {
+        return service;
     }
 }

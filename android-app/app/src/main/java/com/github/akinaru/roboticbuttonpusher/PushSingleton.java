@@ -158,4 +158,8 @@ public class PushSingleton {
     public void setPassword(String password) {
         mService.setPassword(password);
     }
+
+    public void uploadPassword(String pass) {
+        mService.uploadPassword(pass);
+    }
 }
