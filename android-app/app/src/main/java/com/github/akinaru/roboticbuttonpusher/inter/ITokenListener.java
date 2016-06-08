@@ -5,5 +5,5 @@ package com.github.akinaru.roboticbuttonpusher.inter;
  */
 public interface ITokenListener {
 
-    void onTokenReceived(String token);
+    void onTokenReceived(byte[] token);
 }

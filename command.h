@@ -33,4 +33,5 @@ E(COMMAND_PUSH               , 0x02)
 E(COMMAND_SET_PASSWORD       , 0x03)
 E(COMMAND_ASSOCIATE          , 0x04)
 E(COMMAND_SET_KEY            , 0x05)
+E(COMMAND_FAILURE            , 0x06)
 #undef E

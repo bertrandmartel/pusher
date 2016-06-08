@@ -20,6 +20,10 @@ package com.github.akinaru.roboticbuttonpusher.bluetooth.rfduino;
 
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.os.Build;
+import android.util.Base64;
 import android.util.Log;
 
 import com.github.akinaru.roboticbuttonpusher.bluetooth.connection.BluetoothDeviceAbstr;
@@ -27,8 +31,12 @@ import com.github.akinaru.roboticbuttonpusher.bluetooth.connection.IBluetoothDev
 import com.github.akinaru.roboticbuttonpusher.bluetooth.listener.ICharacteristicListener;
 import com.github.akinaru.roboticbuttonpusher.bluetooth.listener.IDeviceInitListener;
 import com.github.akinaru.roboticbuttonpusher.bluetooth.listener.IPushListener;
+import com.github.akinaru.roboticbuttonpusher.constant.SharedPrefConst;
+import com.github.akinaru.roboticbuttonpusher.inter.IAssociationStatusListener;
 import com.github.akinaru.roboticbuttonpusher.inter.ITokenListener;
 import com.github.akinaru.roboticbuttonpusher.model.ButtonPusherCmd;
+import com.github.akinaru.roboticbuttonpusher.service.BtPusherService;
+import com.github.akinaru.roboticbuttonpusher.utils.RandomGen;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -66,7 +74,8 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
     private int failCount = 0;
     private int frameNumToSend = 0;
 
-    private ITokenListener mListener;
+    private ITokenListener mTokenListener;
+    private IAssociationStatusListener mAssociationStatusListener;
 
     private byte[] key = new byte[]{
             (byte) 0xF2, (byte) 0x1E, (byte) 0x07, (byte) 0x8C, (byte) 0x96, (byte) 0x99, (byte) 0x5E, (byte) 0xF7,
@@ -80,6 +89,8 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
             (byte) 0xB0, (byte) 0x63, (byte) 0xCD, (byte) 0x7B, (byte) 0xD3, (byte) 0x8E, (byte) 0x79, (byte) 0xC5
     };
 
+    private byte[] mXorKey;
+
     private boolean init = false;
 
     /*
@@ -88,11 +99,32 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
     ExecutorService threadPool;
 
     /**
+     * shared preference object.
+     */
+    private SharedPreferences sharedPref;
+
+    private String generateXorKey() {
+        return Base64.encodeToString(new RandomGen(32).nextString().getBytes(), Base64.DEFAULT);
+    }
+
+    /**
      * @param conn
      */
     @SuppressLint("NewApi")
     public RfduinoDevice(IBluetoothDeviceConn conn) {
         super(conn);
+
+        //shared preference
+        sharedPref = conn.getManager().getService().getSharedPreferences(SharedPrefConst.PREFERENCES, Context.MODE_PRIVATE);
+
+        String xorKey = sharedPref.getString(SharedPrefConst.XOR_KEY, generateXorKey());
+        mXorKey = Base64.decode(xorKey, Base64.DEFAULT);
+
+        Log.i(TAG, "mXorKey : " + xorKey + " : " + bytesToHex(mXorKey));
+
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putString(SharedPrefConst.XOR_KEY, Base64.encodeToString(mXorKey, Base64.DEFAULT));
+        editor.commit();
 
         threadPool = Executors.newFixedThreadPool(1);
 
@@ -108,19 +140,41 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
                 Log.i(TAG, "receive something : " + charac.getUuid().toString() + " " + charac.getValue().length + " " + charac.getValue()[0]);
 
-                Log.i(TAG, "receive charac string : " + new String(charac.getValue()));
-
-                String value = new String(charac.getValue());
-
-                ButtonPusherCmd cmd = ButtonPusherCmd.getValue(Integer.valueOf("" + value.charAt(0)));
+                ButtonPusherCmd cmd = ButtonPusherCmd.getValue((charac.getValue()[0] & 0xFF) - 48);
 
                 Log.i(TAG, "test : " + cmd);
 
                 switch (cmd) {
                     case COMMAND_GET_TOKEN:
-                        Log.i(TAG, "receive COMMAND_GET_TOKEN notification : " + value.substring(1));
-                        if (mListener != null) {
-                            mListener.onTokenReceived(value.substring(1));
+
+                        byte[] data = new byte[18];
+                        System.arraycopy(charac.getValue(), 0, data, 0, 18);
+                        Log.i(TAG, "receive charac string : " + new String(data));
+                        String value = new String(data);
+
+                        Log.i(TAG, "receive COMMAND_GET_TOKEN notification : " + value.substring(2));
+                        if (mTokenListener != null) {
+                            mTokenListener.onTokenReceived(hexStringToByteArray(value.substring(2)));
+                        }
+                        break;
+                    case COMMAND_ASSOCIATION_STATUS:
+
+                        if (charac.getValue().length > 2) {
+
+                            if (((charac.getValue()[2] & 0xFF) - 48) == 1) {
+                                if (mAssociationStatusListener != null) {
+                                    mAssociationStatusListener.onStatusFailure();
+                                }
+                            } else if (((charac.getValue()[2] & 0xFF) - 48) == 0) {
+                                if (mAssociationStatusListener != null) {
+                                    mAssociationStatusListener.onStatusSuccess();
+                                }
+                            }
+                        }
+                        break;
+                    case COMMAND_FAILURE:
+                        if (charac.getValue().length > 0) {
+                            Log.e(TAG, "command failure");
                         }
                         break;
                     default:
@@ -217,16 +271,86 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
     }
 
+    final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
+
+    public static String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for (int j = 0; j < bytes.length; j++) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+        }
+        return new String(hexChars);
+    }
+
+    private byte[] buildAssociationStatusRequest(byte[] token) {
+
+        if (token.length < 20) {
+            Log.i(TAG, "token length : " + token.length);
+            byte[] xored = new byte[8];
+
+            int i = 0;
+            for (byte element : token) {
+                Log.i(TAG, (mXorKey[i] & 0xFF) + " ^ " + (element & 0xFF));
+                xored[i] = (byte) (mXorKey[i++] ^ element);
+                Log.i(TAG, "xored[i] : " + (xored[i - 1] & 0xFF));
+            }
+
+            byte[] data = new byte[16];
+            byte[] serial = hexStringToByteArray(Build.SERIAL);
+
+            for (int j = 0; j < 8; j++) {
+                data[j] = serial[j];
+            }
+
+            for (int j = 0; j < 8; j++) {
+                data[j + 8] = xored[j];
+            }
+
+            Log.i(TAG, "output : " + bytesToHex(data));
+
+            return BtPusherService.encrypt(data, data.length);
+
+        } else {
+            Log.e(TAG, "token length cant be <20");
+        }
+        return null;
+    }
+
+    public static byte[] hexStringToByteArray(String s) {
+        int len = s.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
+                    + Character.digit(s.charAt(i + 1), 16));
+        }
+        return data;
+    }
+
     @Override
     public void sendPush(String password, IPushListener listener) {
 
-        mListener = new ITokenListener() {
+        mAssociationStatusListener = new IAssociationStatusListener() {
             @Override
-            public void onTokenReceived(String token) {
-                Log.i(TAG, "token received sending association status request");
-                conn.writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, new byte[]{(byte) ButtonPusherCmd.COMMAND_ASSOCIATION_STATUS.ordinal()}, null);
+            public void onStatusSuccess() {
+                Log.i(TAG, "You are already associated to this device");
+            }
+
+            @Override
+            public void onStatusFailure() {
+                Log.e(TAG, "You are not yet associated with this device");
             }
         };
+
+        mTokenListener = new ITokenListener() {
+            @Override
+            public void onTokenReceived(byte[] token) {
+                Log.i(TAG, "token received sending association status request");
+                sendBitmap((byte) ButtonPusherCmd.COMMAND_ASSOCIATION_STATUS.ordinal(), buildAssociationStatusRequest(token));
+                //sendBitmap((byte) ButtonPusherCmd.COMMAND_ASSOCIATION_STATUS.ordinal(), BtPusherService.encrypt("admin".getBytes(), "admin".getBytes().length));
+            }
+        };
+
         conn.writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, new byte[]{(byte) ButtonPusherCmd.COMMAND_GET_TOKEN.ordinal()}, null);
         /*
         byte[] data = BtPusherService.encrypt(password);

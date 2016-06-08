@@ -63,7 +63,7 @@ public class BtPusherService extends Service {
         System.loadLibrary("buttonpusher");
     }
 
-    public static native byte[] encrypt(String message);
+    public static native byte[] encrypt(byte[] message, int length);
 
     /**
      * Service binder

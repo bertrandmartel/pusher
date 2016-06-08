@@ -13,6 +13,8 @@ public class SharedPrefConst {
 
     public static final String DEVICE_NAME_FIELD = "deviceName";
 
+    public static final String XOR_KEY = "xorKey";
+
     public static final String DEVICE_PASSWORD_FIELD = "password";
 
     public static final String DEBUG_MODE_FIELD = "debugMode";
