@@ -52,24 +52,27 @@ byte ButtonPusher::iv[16]  =
 
 extern "C" {
 
-JNIEXPORT jbyteArray JNICALL Java_com_github_akinaru_roboticbuttonpusher_service_BtPusherService_encrypt(JNIEnv* env, jobject obj,jstring message)
+JNIEXPORT jbyteArray JNICALL Java_com_github_akinaru_roboticbuttonpusher_service_BtPusherService_encrypt(JNIEnv* env, jobject obj,jbyteArray message,jint length)
 	{
-		const char* messageConvert = env->GetStringUTFChars(message, 0);
+
+		jbyte *message_b = (jbyte *)env->GetByteArrayElements(message, NULL);
+
+		byte * cData = (byte*)message_b;
+
+		int message_length = (int)length;
 
 		int blocks = 4;
 
 		jbyteArray ret = env->NewByteArray(64);
 
-		string messageStr = messageConvert;
-
 		byte payload[64];
 		byte cipher [4*N_BLOCK];
 
-		for (int i = 0; i  < messageStr.length();i++){
-			payload[i]=messageStr[i];
+		for (int i = 0; i  < message_length;i++){
+			payload[i]=cData[i];
 		}
 
-		for (byte i = messageStr.length(); i < 64; i++){
+		for (byte i = message_length; i < 64; i++){
 			payload[i]=0;
 		}
 
@@ -101,7 +104,7 @@ JNIEXPORT jbyteArray JNICALL Java_com_github_akinaru_roboticbuttonpusher_service
 			}
 		}
 
-		env->ReleaseStringUTFChars(message, messageConvert);
+		env->ReleaseByteArrayElements(message, message_b, 0 );
 		
 		return ret;
 

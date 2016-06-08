@@ -11,6 +11,7 @@ public enum ButtonPusherCmd {
     COMMAND_SET_PASSWORD(0x03),
     COMMAND_ASSOCIATE(0x04),
     COMMAND_SET_KEY(0x05),
+    COMMAND_FAILURE(0x06),
     COMMAND_NONE(0xFF);
 
     private int mCode;
@@ -22,7 +23,7 @@ public enum ButtonPusherCmd {
     public static ButtonPusherCmd getValue(int value) {
 
         for (ButtonPusherCmd cmd : ButtonPusherCmd.values()) {
-            if (value  == cmd.mCode)
+            if (value == cmd.mCode)
                 return cmd;
         }
         return COMMAND_NONE;
