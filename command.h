@@ -22,11 +22,15 @@
  * THE SOFTWARE.                                                                    * 
  ************************************************************************************/
 /**
-	state.h
-	list of state
+	command.h
+	list of commands
 	@author Bertrand Martel
 	@version 1.0
 */
-E(STATE_NONE       , 0x00)
-E(STATE_PROCESSING , 0x01)
+E(COMMAND_GET_TOKEN          , 0x00)
+E(COMMAND_ASSOCIATION_STATUS , 0x01)
+E(COMMAND_PUSH               , 0x02)
+E(COMMAND_SET_PASSWORD       , 0x03)
+E(COMMAND_ASSOCIATE          , 0x04)
+E(COMMAND_SET_KEY            , 0x05)
 #undef E

@@ -27,8 +27,8 @@ import com.github.akinaru.roboticbuttonpusher.bluetooth.connection.IBluetoothDev
 import com.github.akinaru.roboticbuttonpusher.bluetooth.listener.ICharacteristicListener;
 import com.github.akinaru.roboticbuttonpusher.bluetooth.listener.IDeviceInitListener;
 import com.github.akinaru.roboticbuttonpusher.bluetooth.listener.IPushListener;
-import com.github.akinaru.roboticbuttonpusher.model.TransmitState;
-import com.github.akinaru.roboticbuttonpusher.service.BtPusherService;
+import com.github.akinaru.roboticbuttonpusher.inter.ITokenListener;
+import com.github.akinaru.roboticbuttonpusher.model.ButtonPusherCmd;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -65,6 +65,8 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
     private long dateProcessBegin = 0;
     private int failCount = 0;
     private int frameNumToSend = 0;
+
+    private ITokenListener mListener;
 
     private byte[] key = new byte[]{
             (byte) 0xF2, (byte) 0x1E, (byte) 0x07, (byte) 0x8C, (byte) 0x96, (byte) 0x99, (byte) 0x5E, (byte) 0xF7,
@@ -106,6 +108,25 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
                 Log.i(TAG, "receive something : " + charac.getUuid().toString() + " " + charac.getValue().length + " " + charac.getValue()[0]);
 
+                Log.i(TAG, "receive charac string : " + new String(charac.getValue()));
+
+                String value = new String(charac.getValue());
+
+                ButtonPusherCmd cmd = ButtonPusherCmd.getValue(Integer.valueOf("" + value.charAt(0)));
+
+                Log.i(TAG, "test : " + cmd);
+
+                switch (cmd) {
+                    case COMMAND_GET_TOKEN:
+                        Log.i(TAG, "receive COMMAND_GET_TOKEN notification : " + value.substring(1));
+                        if (mListener != null) {
+                            mListener.onTokenReceived(value.substring(1));
+                        }
+                        break;
+                    default:
+                        break;
+                }
+                /*
                 if (charac.getUuid().toString().equals(RFDUINO_RECEIVE_CHARAC)) {
 
                     if (charac.getValue().length > 0) {
@@ -147,6 +168,7 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
                         }
                     }
                 }
+                */
             }
 
             @Override
@@ -187,15 +209,35 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
         initListenerList.add(listener);
     }
 
+    public void requestAssociationStatus() {
+
+    }
+
+    public void requestToken() {
+
+    }
+
     @Override
     public void sendPush(String password, IPushListener listener) {
 
+        mListener = new ITokenListener() {
+            @Override
+            public void onTokenReceived(String token) {
+                Log.i(TAG, "token received sending association status request");
+                conn.writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, new byte[]{(byte) ButtonPusherCmd.COMMAND_ASSOCIATION_STATUS.ordinal()}, null);
+            }
+        };
+        conn.writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, new byte[]{(byte) ButtonPusherCmd.COMMAND_GET_TOKEN.ordinal()}, null);
+        /*
         byte[] data = BtPusherService.encrypt(password);
 
         for (int i = 0; i < data.length; i++) {
             Log.i(TAG, "i:" + i + " " + (data[i] & 0xFF));
         }
+
         sendBitmap((byte) 0x00, BtPusherService.encrypt(password));
+        */
+
         /*
         try {
             byte[] res = new byte[64];
