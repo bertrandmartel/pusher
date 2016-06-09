@@ -182,6 +182,8 @@ void write_host_config(device *item){
 
 void save_config(bool default_config){
 
+    Serial.println("save_config");
+
     if (default_config){
 
       byte succ = aes.set_key (key, 256);
@@ -226,6 +228,8 @@ void save_config(bool default_config){
 
     if (add_device_pending){
 
+      Serial.println("in add_device_pending");
+
       if (config.device_num>0){
         Serial.println("saving new associated device");
         write_host_config(&device_ptr[config.device_num-1]);
@@ -239,8 +243,9 @@ void add_device(char * device_id,char * xor_key){
 
   if (config.device_num<MAX_ASSOCIATED_DEVICE){
 
-    strcpy(device_ptr[config.device_num].device_id, device_id);
-    strcpy(device_ptr[config.device_num].xor_key, xor_key);
+    Serial.println(config.device_num);
+    memcpy(device_ptr[config.device_num].device_id, device_id,8);
+    memcpy(device_ptr[config.device_num].xor_key, xor_key,32);
 
     Serial.println("add device to config : ");
     Serial.print(device_ptr[config.device_num].device_id);
@@ -248,6 +253,10 @@ void add_device(char * device_id,char * xor_key){
     Serial.println(device_ptr[config.device_num].xor_key);
 
     config.device_num++;
+
+    add_device_pending=true;
+
+    Serial.println(config.device_num);
   }
   else{
     Serial.println("error max device is reached");
@@ -303,9 +312,14 @@ void print_all_config(){
     strcpy(device_ptr[i].device_id, item->device_id);
     strcpy(device_ptr[i].xor_key, item->xor_key);
 
-    Serial.print(device_ptr[i].device_id);
-    Serial.print(" : ");
-    Serial.println(device_ptr[i].xor_key);
+    for (int j = 0 ; j < 8;j++){
+      Serial.print (device_ptr[i].device_id[j]>>4, HEX) ; Serial.print (device_ptr[i].device_id[j]&15, HEX) ; Serial.print (" ") ;
+    }
+    Serial.print(" | ");
+    for (int j = 0 ; j < 32;j++){
+      Serial.print (device_ptr[i].xor_key[j]>>4, HEX) ; Serial.print (device_ptr[i].xor_key[j]&15, HEX) ; Serial.print (" ") ;
+    }
+    Serial.println("");
     save_ptr+=10;
   }
   Serial.println("-----------------------------");
@@ -412,6 +426,7 @@ void loop() {
   RFduino_ULPDelay(INFINITE); 
 
   if(interrupting()){
+    Serial.println("interrupting");
     save_config(false);
     add_device_pending=false;
     RFduinoBLE.begin();
