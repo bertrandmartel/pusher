@@ -1,3 +1,4 @@
+
 /**
  * The MIT License (MIT)
  *
@@ -39,27 +40,108 @@ using namespace std;
 
 AES  ButtonPusher::aes;
 
-byte ButtonPusher::key[32]  = 
-    {
-        0xF2, 0x1E, 0x07, 0x8C, 0x96, 0x99, 0x5E, 0xF7, 0xED, 0xF0, 0x91, 0x84, 0x06, 0x06, 0xF3, 0x94,
-        0x59, 0x90, 0x66, 0x63, 0x81, 0xE9, 0x14, 0x3E, 0x7B, 0x02, 0x7E, 0x08, 0xB6, 0xC7, 0x06, 0x26
-    } ;
+extern "C" {
 
-byte ButtonPusher::iv[16]  = 
-    {
-      0xC3, 0x78, 0x7E, 0x76, 0x31, 0x6D, 0x6B, 0x5B, 0xB8, 0x8E, 0xDA, 0x03, 0x82, 0xEB, 0x57, 0xBD
-    } ;
+JNIEXPORT jbyteArray JNICALL Java_com_github_akinaru_roboticbuttonpusher_service_BtPusherService_generatekey(JNIEnv* env, 
+	jobject obj,jbyteArray code)
+{
+
+	jbyte *code_b = (jbyte *)env->GetByteArrayElements(code, NULL);
+
+	jbyteArray ret = env->NewByteArray(32);
+
+	jbyte key[32];
+
+	uint16_t lfsr;
+
+	lfsr = ((code_b[0] & 0xFF)<<8) + (code_b[1] & 0xFF);
+
+	uint8_t j = 2;
+	uint8_t k = 0;
+
+	for (int i = 0; i  < 16;i++){
+
+		if (i!=0 && ((i%4)==0)){
+			lfsr = ((code_b[j] & 0xFF)<<8) + (code_b[j+1] & 0xFF);
+			j+=2;
+		}
+		uint16_t bit  = ((lfsr >> 0) ^ (lfsr >> 2) ^ (lfsr >> 3) ^ (lfsr >> 5) ) & 1;
+		lfsr =  (lfsr >> 1) | (bit << 15);
+
+		key[k] = (lfsr & 0xFF00)>>8;
+		k++;
+		key[k] = (lfsr & 0x00FF)>>0;
+		k++;
+	}
+
+	env->SetByteArrayRegion (ret, 0, 32, key);
+
+	env->ReleaseByteArrayElements(code, code_b, 0 );
+
+	return ret;
+}
+}
 
 extern "C" {
 
-JNIEXPORT jbyteArray JNICALL Java_com_github_akinaru_roboticbuttonpusher_service_BtPusherService_encrypt(JNIEnv* env, jobject obj,jbyteArray message,jint length)
+JNIEXPORT jbyteArray JNICALL Java_com_github_akinaru_roboticbuttonpusher_service_BtPusherService_generateiv(JNIEnv* env, 
+	jobject obj,jbyteArray code)
+{
+
+	jbyte *code_b = (jbyte *)env->GetByteArrayElements(code, NULL);
+
+	jbyteArray ret = env->NewByteArray(16);
+
+	jbyte iv[16];
+
+	for (int i = 0; i  < 8;i++){
+		iv[i] = (code_b[i] & 0xFF);
+	}
+
+	uint16_t lfsr;
+	uint8_t k = 0;
+	uint8_t j = 0;
+
+	for (int i = 0; i  < 4;i++){
+		lfsr = ((code_b[j] & 0xFF)<<8) + (code_b[j+1] & 0xFF);
+		j+=2;
+		uint16_t bit  = ((lfsr >> 0) ^ (lfsr >> 2) ^ (lfsr >> 3) ^ (lfsr >> 5) ) & 1;
+		lfsr =  (lfsr >> 1) | (bit << 15);
+		iv[k+8] = (lfsr & 0xFF00)>>8;
+		k++;
+		iv[k+8] = (lfsr & 0x00FF)>>0;
+		k++;
+	}
+
+	env->SetByteArrayRegion (ret, 0, 16, iv);
+
+	env->ReleaseByteArrayElements(code, code_b, 0 );
+
+	return ret;
+}
+}
+
+extern "C" {
+
+JNIEXPORT jbyteArray JNICALL Java_com_github_akinaru_roboticbuttonpusher_service_BtPusherService_encrypt(JNIEnv* env, 
+	jobject obj,jbyteArray message,jint length,jbyteArray key,jbyteArray iv)
 	{
 
 		jbyte *message_b = (jbyte *)env->GetByteArrayElements(message, NULL);
+		jbyte *key_ba = (jbyte *)env->GetByteArrayElements(key, NULL);
+		jbyte *iv_ba = (jbyte *)env->GetByteArrayElements(iv, NULL);
 
 		byte * cData = (byte*)message_b;
+		byte * key_c = (byte*)key_ba;
+		byte * iv_c = (byte*)iv_ba;
 
 		int message_length = (int)length;
+
+		byte succ = ButtonPusher::aes.set_key(key_c, 256);
+
+		if (succ!=0){
+			__android_log_print(ANDROID_LOG_ERROR,"JNI_OnLoad","unable to set aes key\n");
+		}
 
 		int blocks = 4;
 
@@ -76,20 +158,19 @@ JNIEXPORT jbyteArray JNICALL Java_com_github_akinaru_roboticbuttonpusher_service
 			payload[i]=0;
 		}
 
-		byte succ = 0;
-
 		if (blocks == 1){
 			succ = ButtonPusher::aes.encrypt(payload, cipher) ;
 		}
 		else {
-
+			/*
 			byte iv_b[N_BLOCK];
 
 			for (int i = 0 ; i < N_BLOCK ; i++){
-				iv_b[i] = ButtonPusher::iv[i] ;
+				iv_b[i] = iv_c[i] ;
 			}
+			*/
 
-			succ = ButtonPusher::aes.cbc_encrypt (payload, cipher, blocks, iv_b) ;
+			succ = ButtonPusher::aes.cbc_encrypt (payload, cipher, blocks, iv_c) ;
 		}
 		
 		if (succ!=0){
@@ -100,12 +181,14 @@ JNIEXPORT jbyteArray JNICALL Java_com_github_akinaru_roboticbuttonpusher_service
 
 			for (byte i = 0; i < 64; i++){
 				payloadBa[i]=cipher[i];
-				env->SetByteArrayRegion (ret, 0, 64, payloadBa);
 			}
+			env->SetByteArrayRegion (ret, 0, 64, payloadBa);
 		}
 
 		env->ReleaseByteArrayElements(message, message_b, 0 );
-		
+		env->ReleaseByteArrayElements(key, key_ba, 0 );
+		env->ReleaseByteArrayElements(iv, iv_ba, 0 );
+
 		return ret;
 
 	}
@@ -115,12 +198,6 @@ extern "C" {
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* aReserved)
 {
-	byte succ = ButtonPusher::aes.set_key(ButtonPusher::key, 256);
-
-	if (succ!=0){
-		__android_log_print(ANDROID_LOG_ERROR,"JNI_OnLoad","unable to set aes key\n");
-	}
-
 	return JNI_VERSION_1_6;
 }
 }

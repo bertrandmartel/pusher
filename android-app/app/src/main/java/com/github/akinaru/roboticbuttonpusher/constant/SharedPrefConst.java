@@ -15,6 +15,10 @@ public class SharedPrefConst {
 
     public static final String XOR_KEY = "xorKey";
 
+    public static final String IV = "iv";
+
+    public static final String AES_KEY = "aesKey";
+
     public static final String DEVICE_PASSWORD_FIELD = "password";
 
     public static final String DEBUG_MODE_FIELD = "debugMode";

@@ -40,10 +40,6 @@ public:
 
   static AES aes;
 
-  static byte key[32];
-
-  static byte iv[16];
-
 };
 
 #endif // BUTTONPUSHER_H

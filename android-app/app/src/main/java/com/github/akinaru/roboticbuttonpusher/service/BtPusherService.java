@@ -63,7 +63,11 @@ public class BtPusherService extends Service {
         System.loadLibrary("buttonpusher");
     }
 
-    public static native byte[] encrypt(byte[] message, int length);
+    public static native byte[] encrypt(byte[] message, int length, byte[] key, byte[] iv);
+
+    public static native byte[] generatekey(byte[] code);
+
+    public static native byte[] generateiv(byte[] code);
 
     /**
      * Service binder
@@ -82,7 +86,9 @@ public class BtPusherService extends Service {
 
     private static final int SCAN_TIMEOUT = 2500;
 
-    private static final int NOTIFICATION_TIMEOUT = 3000;
+    private static final int NOTIFICATION_TIMEOUT = 5000;
+
+    private static final int USER_CODE_TIMEOUT = 60000;
 
     private static final int BLUETOOTH_STATE_TIMEOUT = 2500;
 
@@ -100,6 +106,43 @@ public class BtPusherService extends Service {
 
     public void setPassword(String password) {
         this.mPassword = password;
+    }
+
+    public void sendAssociationCode(String code) {
+
+        if (mTimeoutTask != null) {
+            mTimeoutTask.cancel(true);
+        }
+
+        mTimeoutTask = mExecutor.schedule(new Runnable() {
+            @Override
+            public void run() {
+                dispatchError(ButtonPusherError.NOTIFICATION_TIMEOUT);
+                btManager.disconnectAndRemove(mDeviceAdress);
+                mState = ButtonPusherState.NONE;
+                changeState(mState);
+
+            }
+        }, NOTIFICATION_TIMEOUT, TimeUnit.MILLISECONDS);
+
+        IRfduinoDevice device = (IRfduinoDevice) btManager.getConnectionList().get(mDeviceAdress).getDevice();
+
+        if (device != null) {
+            device.sendAssociationCode(code);
+        } else {
+            Log.e(TAG, "device not found");
+        }
+    }
+
+    public void sendAssociationCodeFail() {
+        Log.e(TAG, "association fail");
+        if (mTimeoutTask != null) {
+            mTimeoutTask.cancel(true);
+        }
+        dispatchError(ButtonPusherError.CONNECTION_TIMEOUT);
+        btManager.disconnectAndRemove(mDeviceAdress);
+        mState = ButtonPusherState.NONE;
+        changeState(mState);
     }
 
     /*
@@ -302,6 +345,23 @@ public class BtPusherService extends Service {
                         push.run();
                     }
                 }
+            } else if (action.equals(BluetoothEvents.BT_EVENT_DEVICE_USER_ACTION_REQUIRED)) {
+                Log.v(TAG, "removing timout");
+                if (mTimeoutTask != null) {
+                    mTimeoutTask.cancel(true);
+                }
+                Log.v(TAG, "setting large timeout to let user type code");
+
+                mTimeoutTask = mExecutor.schedule(new Runnable() {
+                    @Override
+                    public void run() {
+                        dispatchError(ButtonPusherError.NOTIFICATION_TIMEOUT);
+                        btManager.disconnectAndRemove(mDeviceAdress);
+                        mState = ButtonPusherState.NONE;
+                        changeState(mState);
+
+                    }
+                }, USER_CODE_TIMEOUT, TimeUnit.MILLISECONDS);
             }
         }
     };
@@ -345,6 +405,7 @@ public class BtPusherService extends Service {
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_REMOVED);
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_RETRY);
         intentFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_USER_ACTION_REQUIRED);
         return intentFilter;
     }
 

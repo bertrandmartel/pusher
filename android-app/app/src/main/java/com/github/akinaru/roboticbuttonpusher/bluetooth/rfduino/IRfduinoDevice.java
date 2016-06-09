@@ -29,4 +29,5 @@ public interface IRfduinoDevice {
 
     void sendPush(String password, IPushListener listener);
 
+    void sendAssociationCode(String code);
 }
