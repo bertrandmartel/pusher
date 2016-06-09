@@ -162,4 +162,12 @@ public class PushSingleton {
     public void uploadPassword(String pass) {
         mService.uploadPassword(pass);
     }
+
+    public void sendAssociationCode(String code) {
+        mService.sendAssociationCode(code);
+    }
+
+    public void sendAssociationCodeFail() {
+        mService.sendAssociationCodeFail();
+    }
 }

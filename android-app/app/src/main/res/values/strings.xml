@@ -36,6 +36,7 @@
     <string name="command_failure_log">Command failure</string>
     <string name="rfduino_device_name">RFduino device name</string>
     <string name="rfduino_device_password">RFduino device password</string>
+    <string name="user_action_device_code_title">Type device code</string>
     <string name="dialog_ok">OK</string>
     <string name="cancel">Cancel</string>
     <string name="debug_mode_title">Debug mode :</string>

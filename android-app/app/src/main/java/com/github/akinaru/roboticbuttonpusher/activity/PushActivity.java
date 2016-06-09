@@ -19,8 +19,10 @@
 package com.github.akinaru.roboticbuttonpusher.activity;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -36,7 +38,9 @@ import android.widget.Toast;
 
 import com.github.akinaru.roboticbuttonpusher.PushSingleton;
 import com.github.akinaru.roboticbuttonpusher.R;
+import com.github.akinaru.roboticbuttonpusher.bluetooth.events.BluetoothEvents;
 import com.github.akinaru.roboticbuttonpusher.constant.SharedPrefConst;
+import com.github.akinaru.roboticbuttonpusher.dialog.UserActionDialog;
 import com.github.akinaru.roboticbuttonpusher.inter.IPushBtnListener;
 import com.github.akinaru.roboticbuttonpusher.inter.ISingletonListener;
 import com.github.akinaru.roboticbuttonpusher.model.ButtonPusherError;
@@ -72,12 +76,17 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
 
     private static final int REQUEST_PERMISSION_COARSE_LOCATION = 2;
 
+    private UserActionDialog dialog;
+
     protected void onCreate(Bundle savedInstanceState) {
 
         setLayout(R.layout.activity_button_push);
         super.onCreate(savedInstanceState);
 
         Log.v(TAG, "oncreate");
+
+        //register bluetooth event broadcast receiver
+        registerReceiver(mBluetoothReceiver, makeGattUpdateIntentFilter());
 
         mAnimationScaleUp = AnimationUtils.loadAnimation(this, R.anim.scale_up);
         mAnimationScaleDown = AnimationUtils.loadAnimation(this, R.anim.scale_down);
@@ -290,10 +299,44 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        unregisterReceiver(mBluetoothReceiver);
         mSingleton.stopPushTask();
         mSingleton.unbindService(getApplicationContext());
         Log.v(TAG, "onDestroy");
     }
+
+    /**
+     * broadcast receiver to receive bluetooth events
+     */
+    private final BroadcastReceiver mBluetoothReceiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+            final String action = intent.getAction();
+
+            if (BluetoothEvents.BT_EVENT_DEVICE_USER_ACTION_REQUIRED.equals(action)) {
+                Log.v(TAG, "show user action dialog");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        dialog = new UserActionDialog(PushActivity.this);
+                        dialog.show();
+                    }
+                });
+            } else if (BluetoothEvents.BT_EVENT_DEVICE_DISCONNECTED.equals(action)) {
+                Log.v(TAG, "device has been disconnected");
+                if (dialog != null) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            dialog.dismiss();
+                        }
+                    });
+                }
+            }
+        }
+    };
 
     @Override
     public void onResume() {
@@ -389,6 +432,16 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
         }
     }
 
+    @Override
+    public void sendAssociationCode(String code) {
+        mSingleton.sendAssociationCode(code);
+    }
+
+    @Override
+    public void sendAssociationCodeFail() {
+        mSingleton.sendAssociationCodeFail();
+    }
+
     private void clearReplaceDebugTv(final String text) {
         runOnUiThread(new Runnable() {
             @Override
@@ -403,5 +456,17 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
         if (mSingleton != null) {
             mSingleton.setServiceListener(mBtnListener);
         }
+    }
+
+    /**
+     * add filter to intent to receive notification from bluetooth service
+     *
+     * @return intent filter
+     */
+    private static IntentFilter makeGattUpdateIntentFilter() {
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_USER_ACTION_REQUIRED);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_DISCONNECTED);
+        return intentFilter;
     }
 }

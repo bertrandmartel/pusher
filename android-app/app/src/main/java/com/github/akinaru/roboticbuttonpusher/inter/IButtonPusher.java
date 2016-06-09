@@ -22,4 +22,8 @@ public interface IButtonPusher {
     void setDebugMode(boolean status);
 
     void uploadPassword(String pass);
+
+    void sendAssociationCode(String code);
+
+    void sendAssociationCodeFail();
 }

@@ -28,10 +28,13 @@ import android.util.Log;
 
 import com.github.akinaru.roboticbuttonpusher.bluetooth.connection.BluetoothDeviceAbstr;
 import com.github.akinaru.roboticbuttonpusher.bluetooth.connection.IBluetoothDeviceConn;
+import com.github.akinaru.roboticbuttonpusher.bluetooth.events.BluetoothEvents;
 import com.github.akinaru.roboticbuttonpusher.bluetooth.listener.ICharacteristicListener;
 import com.github.akinaru.roboticbuttonpusher.bluetooth.listener.IDeviceInitListener;
 import com.github.akinaru.roboticbuttonpusher.bluetooth.listener.IPushListener;
+import com.github.akinaru.roboticbuttonpusher.constant.DefaultKeys;
 import com.github.akinaru.roboticbuttonpusher.constant.SharedPrefConst;
+import com.github.akinaru.roboticbuttonpusher.inter.IAssociateListener;
 import com.github.akinaru.roboticbuttonpusher.inter.IAssociationStatusListener;
 import com.github.akinaru.roboticbuttonpusher.inter.ITokenListener;
 import com.github.akinaru.roboticbuttonpusher.model.ButtonPusherCmd;
@@ -76,20 +79,11 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
     private ITokenListener mTokenListener;
     private IAssociationStatusListener mAssociationStatusListener;
-
-    private byte[] key = new byte[]{
-            (byte) 0xF2, (byte) 0x1E, (byte) 0x07, (byte) 0x8C, (byte) 0x96, (byte) 0x99, (byte) 0x5E, (byte) 0xF7,
-            (byte) 0xED, (byte) 0xF0, (byte) 0x91, (byte) 0x84, (byte) 0x06, (byte) 0x06, (byte) 0xF3, (byte) 0x94,
-            (byte) 0x59, (byte) 0x90, (byte) 0x66, (byte) 0x63, (byte) 0x81, (byte) 0xE9, (byte) 0x14, (byte) 0x3E,
-            (byte) 0x7B, (byte) 0x02, (byte) 0x7E, (byte) 0x08, (byte) 0xB6, (byte) 0xC7, (byte) 0x06, (byte) 0x26
-    };
-
-    private byte[] iv = new byte[]{
-            (byte) 0xF7, (byte) 0x00, (byte) 0x15, (byte) 0x3C, (byte) 0x4E, (byte) 0x67, (byte) 0x34, (byte) 0xB9,
-            (byte) 0xB0, (byte) 0x63, (byte) 0xCD, (byte) 0x7B, (byte) 0xD3, (byte) 0x8E, (byte) 0x79, (byte) 0xC5
-    };
+    private IAssociateListener mAssociationListener;
 
     private byte[] mXorKey;
+    private byte[] mAesKey;
+    private byte[] mIv;
 
     private boolean init = false;
 
@@ -107,6 +101,14 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
         return Base64.encodeToString(new RandomGen(32).nextString().getBytes(), Base64.DEFAULT);
     }
 
+    private String getAesKey() {
+        return Base64.encodeToString(DefaultKeys.AES_DEFAULT_KEY, Base64.DEFAULT);
+    }
+
+    private String getIv() {
+        return Base64.encodeToString(DefaultKeys.IV_DEFAULT, Base64.DEFAULT);
+    }
+
     /**
      * @param conn
      */
@@ -119,6 +121,12 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
         String xorKey = sharedPref.getString(SharedPrefConst.XOR_KEY, generateXorKey());
         mXorKey = Base64.decode(xorKey, Base64.DEFAULT);
+
+        String aesKey = sharedPref.getString(SharedPrefConst.AES_KEY, getAesKey());
+        mAesKey = Base64.decode(aesKey, Base64.DEFAULT);
+
+        String iv = sharedPref.getString(SharedPrefConst.IV, getIv());
+        mIv = Base64.decode(iv, Base64.DEFAULT);
 
         Log.i(TAG, "mXorKey : " + xorKey + " : " + bytesToHex(mXorKey));
 
@@ -175,6 +183,24 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
                     case COMMAND_FAILURE:
                         if (charac.getValue().length > 0) {
                             Log.e(TAG, "command failure");
+                        }
+                        break;
+                    case COMMAND_ASSOCIATE:
+                        if (charac.getValue().length > 2) {
+
+                            if (((charac.getValue()[2] & 0xFF) - 48) == 1) {
+                                if (mAssociationListener != null) {
+                                    mAssociationListener.onAssociationFailure();
+                                }
+                            } else if (((charac.getValue()[2] & 0xFF) - 48) == 0) {
+                                if (mAssociationListener != null) {
+                                    mAssociationListener.onAssociationSuccess();
+                                }
+                            } else if (((charac.getValue()[2] & 0xFF) - 48) == 2) {
+                                if (mAssociationListener != null) {
+                                    mAssociationListener.onUserActionRequired();
+                                }
+                            }
                         }
                         break;
                     default:
@@ -263,14 +289,6 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
         initListenerList.add(listener);
     }
 
-    public void requestAssociationStatus() {
-
-    }
-
-    public void requestToken() {
-
-    }
-
     final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
 
     public static String bytesToHex(byte[] bytes) {
@@ -309,7 +327,7 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
             Log.i(TAG, "output : " + bytesToHex(data));
 
-            return BtPusherService.encrypt(data, data.length);
+            return BtPusherService.encrypt(data, data.length, mAesKey, mIv);
 
         } else {
             Log.e(TAG, "token length cant be <20");
@@ -338,7 +356,73 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
             @Override
             public void onStatusFailure() {
-                Log.e(TAG, "You are not yet associated with this device");
+                Log.e(TAG, "You are not yet associated with this device. Associating ...");
+
+                mTokenListener = new ITokenListener() {
+
+                    @Override
+                    public void onTokenReceived(final byte[] token) {
+
+                        Log.i(TAG, "token received sending associate request");
+
+                        mAssociationListener = new IAssociateListener() {
+                            @Override
+                            public void onAssociationSuccess() {
+                                Log.i(TAG, "association success");
+                            }
+
+                            @Override
+                            public void onAssociationFailure() {
+                                Log.e(TAG, "association failure");
+                            }
+
+                            @Override
+                            public void onUserActionRequired() {
+                                Log.i(TAG, "user action required");
+                                conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_USER_ACTION_REQUIRED, new ArrayList<String>());
+                            }
+
+                            @Override
+                            public void onUserActionCommitted(String code) {
+
+                                Log.i(TAG, "user action committed : " + code);
+
+                                if (code.toUpperCase().matches("[0123456789ABCDEF]*")) {
+
+                                    byte[] codeBa = hexStringToByteArray(code.toUpperCase());
+                                    byte[] serial = hexStringToByteArray(Build.SERIAL);
+                                    byte[] data = new byte[8 + 32 + 8];
+
+                                    for (int j = 0; j < 8; j++) {
+                                        data[j] = serial[j];
+                                    }
+                                    for (int j = 0; j < 32; j++) {
+                                        data[j + 8] = mXorKey[j];
+                                    }
+                                    for (int j = 0; j < 8; j++) {
+                                        data[j + 40] = token[j];
+                                    }
+                                    Log.i(TAG, "code    : " + bytesToHex(codeBa));
+                                    Log.i(TAG, "Build.SERIAL : " + Build.SERIAL + " serial  : " + bytesToHex(serial));
+                                    byte[] key = BtPusherService.generatekey(codeBa);
+                                    byte[] iv = BtPusherService.generateiv(codeBa);
+
+                                    Log.i(TAG, "key : " + bytesToHex(key));
+                                    Log.i(TAG, "iv  : " + bytesToHex(iv));
+
+                                    sendBitmap((byte) ButtonPusherCmd.COMMAND_ASSOCIATE_RESPONSE.ordinal(), BtPusherService.encrypt(data, data.length, key, iv));
+
+                                } else {
+                                    Log.e(TAG, "error code is invalid");
+                                }
+                            }
+                        };
+
+                        conn.writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, new byte[]{(byte) ButtonPusherCmd.COMMAND_ASSOCIATE.ordinal()}, null);
+                    }
+                };
+
+                conn.writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, new byte[]{(byte) ButtonPusherCmd.COMMAND_GET_TOKEN.ordinal()}, null);
             }
         };
 
@@ -398,6 +482,13 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
         data[data.length - 1] = '\0';
         getConn().writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, data, listener);
         */
+    }
+
+    @Override
+    public void sendAssociationCode(String code) {
+        if (mAssociationListener != null) {
+            mAssociationListener.onUserActionCommitted(code);
+        }
     }
 
     private void sendBitmapSequence() {
