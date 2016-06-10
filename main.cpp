@@ -42,6 +42,7 @@ uint8_t state_count= 0;
 uint8_t cmd = 0;
 uint16_t data_length = 0;
 bool use_local_keys = true;
+uint16_t sending_index = 0;
 
 AES aes ;
 
@@ -67,6 +68,7 @@ byte external_key[32];
 byte external_iv[16];
 
 uint8_t* payload;
+uint8_t* response;
 uint8_t offset = 0;
 
 #if 0
@@ -247,10 +249,7 @@ void add_device(char * device_id,char * xor_key){
     memcpy(device_ptr[config.device_num].device_id, device_id,8);
     memcpy(device_ptr[config.device_num].xor_key, xor_key,32);
 
-    Serial.println("add device to config : ");
-    Serial.print(device_ptr[config.device_num].device_id);
-    Serial.print(" : ");
-    Serial.println(device_ptr[config.device_num].xor_key);
+    Serial.println("add device to config");
 
     config.device_num++;
 
@@ -351,7 +350,7 @@ void write(){
   
   in_flash = (data_t*)ADDRESS_OF_PAGE(CONFIG_STORAGE);
 
-  if (in_flash->flag != 1){
+  if (in_flash->flag != 0){
 
     Serial.println("writing default configuration");
 
@@ -463,6 +462,10 @@ void motor_process()
 void RFduinoBLE_onDisconnect(){
   Serial.println("onDisconnect");
   use_local_keys=true;
+  free(response);
+  response=0;
+  free(payload);
+  payload=0;
   interrupt();
 }
 
@@ -652,7 +655,112 @@ void executeCmd(byte *check){
         Serial.println("association success");
         //record xor / device id
         add_device(device_id,xor_key);
-        sendAssociationActionStatus(true);
+        
+        //sendAssociationActionStatus(true);
+        
+        byte key_data[64];
+        byte iv_data[64];
+
+        for (int i = 0; i < 32;i++){
+          key_data[i] = key[i];
+        }
+        for (int i = 32 ; i < 64;i++){
+          key_data[i]= 0;
+        }
+        for (int i = 0; i < 16;i++){
+          iv_data[i] = my_iv[i];
+        }
+        for (int i = 16; i < 64;i++){
+          iv_data[i] = 0;
+        }
+
+        Serial.println("CURRENT KEY");
+        for (byte i = 0; i < 32; i++){
+          Serial.print (key_data[i]>>4, HEX) ; Serial.print (key_data[i]&15, HEX) ; Serial.print (" ") ;
+        }
+        Serial.println();
+        Serial.println("CURRENT IV");
+        for (byte i = 0; i < 16; i++){
+          Serial.print (iv_data[i]>>4, HEX) ; Serial.print (iv_data[i]&15, HEX) ; Serial.print (" ") ;
+        }
+
+        Serial.println("EXTERNAL KEY");
+        for (byte i = 0; i < 32; i++){
+          Serial.print (external_key[i]>>4, HEX) ; Serial.print (external_key[i]&15, HEX) ; Serial.print (" ") ;
+        }
+        Serial.println();
+        Serial.println("EXTERNAL IV");
+        for (byte i = 0; i < 16; i++){
+          Serial.print (external_iv[i]>>4, HEX) ; Serial.print (external_iv[i]&15, HEX) ; Serial.print (" ") ;
+        }
+        Serial.println();
+
+        byte succ = aes.set_key (external_key, 256);
+
+        int blocks = 4;
+        byte cipher [64] ;
+        byte iv [16];
+        for (byte i = 0 ; i < 16 ; i++){
+          iv[i] = external_iv[i] ;
+        }
+        succ = aes.cbc_encrypt(key_data, cipher, blocks, iv) ;
+
+        byte check[64];
+        for (byte i = 0 ; i < 16 ; i++){
+          iv[i] = external_iv[i] ;
+        }
+        //decrypt
+        succ = aes.cbc_decrypt(cipher, check, 4, iv) ;
+        Serial.println("DECRYPT KEY");
+        for (byte i = 0; i < 64; i++){
+          Serial.print (check[i]>>4, HEX) ; Serial.print (check[i]&15, HEX) ; Serial.print (" ") ;
+        }
+        Serial.println();
+
+        state = STATE_SENDING;
+        data_length = 128;
+        response = (uint8_t*)malloc(data_length + 1);
+        memset(response, 0, data_length + 1);
+
+        for (byte i = 0; i < 64; i++){
+          Serial.print (cipher[i]>>4, HEX) ; Serial.print (cipher[i]&15, HEX) ; Serial.print (" ") ;
+          response[i]=cipher[i];
+        }
+        Serial.println();
+
+        for (byte i = 0 ; i < N_BLOCK ; i++){
+          iv[i] = external_iv[i] ;
+        }
+        succ = aes.cbc_encrypt(iv_data, cipher, blocks, iv) ;
+
+        for (byte i = 0 ; i < 16 ; i++){
+          iv[i] = external_iv[i] ;
+        }
+        //decrypt
+        succ = aes.cbc_decrypt(cipher, check, 4, iv) ;
+        Serial.println("DECRYPT IV");
+        for (byte i = 0; i < 64; i++){
+          Serial.print (check[i]>>4, HEX) ; Serial.print (check[i]&15, HEX) ; Serial.print (" ") ;
+        }
+        Serial.println();
+
+
+         for (byte i = 0; i < 64; i++){
+          Serial.print (cipher[i]>>4, HEX) ; Serial.print (cipher[i]&15, HEX) ; Serial.print (" ") ;
+          response[i+64]=cipher[i];
+        }
+        Serial.println();
+
+        sending_index=0;
+        
+        Serial.println(data_length);
+
+        char req[10]={0};
+        sprintf(req, "%d:%d:%d", COMMAND_ASSOCIATE_RESPONSE, STATE_SENDING,data_length);
+        Serial.print("sending : ");
+        Serial.println(req);
+        RFduinoBLE.send(req,10);
+
       }
       else{
         memset(token, 0, 8);
@@ -757,7 +865,9 @@ void RFduinoBLE_onReceive(char *data, int len){
       uint8_t ret = 0;
 
       switch (cmd){
-        case COMMAND_GET_TOKEN:{
+
+        case COMMAND_GET_TOKEN:
+        {
           Serial.println(COMMAND_STRING_ENUM[cmd]);
 
           uint16_t lfsr1 = random();
@@ -813,7 +923,6 @@ void RFduinoBLE_onReceive(char *data, int len){
         {
           Serial.println(COMMAND_STRING_ENUM[cmd]);
           //generate a key from 8 octet random
-
           uint16_t lfsr1 = random();
           uint16_t lfsr2 = random();
           uint16_t lfsr3 = random();
@@ -885,6 +994,34 @@ void RFduinoBLE_onReceive(char *data, int len){
           Serial.print("data_length: ");
           Serial.println(data_length);
           break;
+        }
+        case COMMAND_RECEIVE_KEYS:
+        {
+          Serial.println("sending keys");
+          char buf[18]={0};
+          int diff = data_length-sending_index;
+          Serial.println(diff);
+
+          if (diff<=18){
+            Serial.println("sending last frame");
+
+            for (int i = 0;i < diff;i++){
+              buf[i]=response[i+sending_index];
+            }
+            Serial.println(data_length-sending_index);
+            RFduinoBLE.send(buf,(data_length-sending_index));
+            sending_index=0;
+            free(response);
+            response=0;
+          }
+          else{
+            for (int i = 0;i < 18;i++){
+              buf[i]=response[i+sending_index];
+            }
+            sending_index+=18;;
+
+            RFduinoBLE.send(buf,18);
+          }
         }
         case COMMAND_SET_KEY:
         {

@@ -194,6 +194,71 @@ JNIEXPORT jbyteArray JNICALL Java_com_github_akinaru_roboticbuttonpusher_service
 	}
 }
 
+
+extern "C" {
+
+JNIEXPORT jbyteArray JNICALL Java_com_github_akinaru_roboticbuttonpusher_service_BtPusherService_decrypt(JNIEnv* env, 
+	jobject obj,jbyteArray cipher,jint length,jbyteArray key,jbyteArray iv)
+	{
+
+		jbyte *cipher_b = (jbyte *)env->GetByteArrayElements(cipher, NULL);
+		jbyte *key_ba = (jbyte *)env->GetByteArrayElements(key, NULL);
+		jbyte *iv_ba = (jbyte *)env->GetByteArrayElements(iv, NULL);
+
+		byte * cData = (byte*)cipher_b;
+		byte * key_c = (byte*)key_ba;
+		byte * iv_c = (byte*)iv_ba;
+
+		int message_length = (int)length;
+
+		byte succ = ButtonPusher::aes.set_key(key_c, 256);
+
+		if (succ!=0){
+			__android_log_print(ANDROID_LOG_ERROR,"JNI_OnLoad","unable to set aes key\n");
+		}
+
+		int blocks = 4;
+
+		jbyteArray ret = env->NewByteArray(64);
+
+		byte payload[64];
+		byte check [4*N_BLOCK];
+		byte iv_b[16];
+
+		for (int i = 0; i  < message_length;i++){
+			payload[i]=(cData[i] & 0xFF);
+		}
+		for (int i = 0; i  < 16;i++){
+			iv_b[i]=iv_c[i]& 0xFF;
+		}
+		for (byte i = message_length; i < 64; i++){
+			payload[i]=0;
+		}
+
+        //decrypt
+        succ = ButtonPusher::aes.cbc_decrypt(payload, check, 4, iv_b) ;
+		
+		if (succ!=0){
+			__android_log_print(ANDROID_LOG_ERROR,"encrypt","encrypt error\n");
+		}
+		else{
+			jbyte payloadBa[64];
+
+			for (byte i = 0; i < 64; i++){
+				payloadBa[i]=check[i];
+			}
+			env->SetByteArrayRegion (ret, 0, 64, payloadBa);
+		}
+
+		env->ReleaseByteArrayElements(cipher, cipher_b, 0 );
+		env->ReleaseByteArrayElements(key, key_ba, 0 );
+		env->ReleaseByteArrayElements(iv, iv_ba, 0 );
+
+		return ret;
+
+	}
+}
+
 extern "C" {
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* aReserved)

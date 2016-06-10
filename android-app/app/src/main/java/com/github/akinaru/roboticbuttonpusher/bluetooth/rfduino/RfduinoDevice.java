@@ -38,6 +38,7 @@ import com.github.akinaru.roboticbuttonpusher.inter.IAssociateListener;
 import com.github.akinaru.roboticbuttonpusher.inter.IAssociationStatusListener;
 import com.github.akinaru.roboticbuttonpusher.inter.ITokenListener;
 import com.github.akinaru.roboticbuttonpusher.model.ButtonPusherCmd;
+import com.github.akinaru.roboticbuttonpusher.model.NotificationState;
 import com.github.akinaru.roboticbuttonpusher.service.BtPusherService;
 import com.github.akinaru.roboticbuttonpusher.utils.RandomGen;
 
@@ -76,6 +77,7 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
     private long dateProcessBegin = 0;
     private int failCount = 0;
     private int frameNumToSend = 0;
+    private NotificationState mState = NotificationState.SENDING;
 
     private ITokenListener mTokenListener;
     private IAssociationStatusListener mAssociationStatusListener;
@@ -86,6 +88,12 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
     private byte[] mIv;
 
     private boolean init = false;
+    private byte[] response;
+    private int responseLength;
+    private int responseIndex;
+
+    private byte[] mExternalKey;
+    private byte[] mExternalIv;
 
     /*
      * Creates a new pool of Thread objects for the download work queue
@@ -113,7 +121,7 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
      * @param conn
      */
     @SuppressLint("NewApi")
-    public RfduinoDevice(IBluetoothDeviceConn conn) {
+    public RfduinoDevice(final IBluetoothDeviceConn conn) {
         super(conn);
 
         //shared preference
@@ -148,107 +156,178 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
                 Log.i(TAG, "receive something : " + charac.getUuid().toString() + " " + charac.getValue().length + " " + charac.getValue()[0]);
 
-                ButtonPusherCmd cmd = ButtonPusherCmd.getValue((charac.getValue()[0] & 0xFF) - 48);
+                switch (mState) {
+                    case SENDING:
 
-                Log.i(TAG, "test : " + cmd);
+                        ButtonPusherCmd cmd = ButtonPusherCmd.getValue((charac.getValue()[0] & 0xFF) - 48);
 
-                switch (cmd) {
-                    case COMMAND_GET_TOKEN:
+                        Log.i(TAG, "test : " + cmd);
 
-                        byte[] data = new byte[18];
-                        System.arraycopy(charac.getValue(), 0, data, 0, 18);
-                        Log.i(TAG, "receive charac string : " + new String(data));
-                        String value = new String(data);
+                        switch (cmd) {
+                            case COMMAND_GET_TOKEN:
 
-                        Log.i(TAG, "receive COMMAND_GET_TOKEN notification : " + value.substring(2));
-                        if (mTokenListener != null) {
-                            mTokenListener.onTokenReceived(hexStringToByteArray(value.substring(2)));
+                                byte[] data = new byte[18];
+                                System.arraycopy(charac.getValue(), 0, data, 0, 18);
+                                Log.i(TAG, "receive charac string : " + new String(data));
+                                String value = new String(data);
+
+                                Log.i(TAG, "receive COMMAND_GET_TOKEN notification : " + value.substring(2));
+                                if (mTokenListener != null) {
+                                    mTokenListener.onTokenReceived(hexStringToByteArray(value.substring(2)));
+                                }
+                                break;
+                            case COMMAND_ASSOCIATION_STATUS:
+
+                                if (charac.getValue().length > 2) {
+
+                                    if (((charac.getValue()[2] & 0xFF) - 48) == 1) {
+                                        if (mAssociationStatusListener != null) {
+                                            mAssociationStatusListener.onStatusFailure();
+                                        }
+                                    } else if (((charac.getValue()[2] & 0xFF) - 48) == 0) {
+                                        if (mAssociationStatusListener != null) {
+                                            mAssociationStatusListener.onStatusSuccess();
+                                        }
+                                    }
+                                }
+                                break;
+                            case COMMAND_FAILURE:
+                                if (charac.getValue().length > 0) {
+                                    Log.e(TAG, "command failure");
+                                }
+                                break;
+                            case COMMAND_ASSOCIATE:
+                                if (charac.getValue().length > 2) {
+
+                                    if (((charac.getValue()[2] & 0xFF) - 48) == 1) {
+                                        if (mAssociationListener != null) {
+                                            mAssociationListener.onAssociationFailure();
+                                        }
+                                    } else if (((charac.getValue()[2] & 0xFF) - 48) == 0) {
+                                        if (mAssociationListener != null) {
+                                            mAssociationListener.onAssociationSuccess();
+                                        }
+                                    } else if (((charac.getValue()[2] & 0xFF) - 48) == 2) {
+                                        if (mAssociationListener != null) {
+                                            mAssociationListener.onUserActionRequired();
+                                        }
+                                    }
+                                }
+                                break;
+                            case COMMAND_ASSOCIATE_RESPONSE:
+                                if (charac.getValue().length > 2) {
+
+                                    if (((charac.getValue()[2] & 0xFF) - 48) == 2) {
+
+                                        Log.i(TAG, "receiving association response");
+                                        mState = NotificationState.RECEIVING;
+                                        responseIndex = 0;
+                                        Log.i(TAG, new String(charac.getValue()).replaceAll("[^\\x20-\\x7e]", ""));
+                                        String[] dataStr = new String(charac.getValue()).replaceAll("[^\\x20-\\x7e]", "").split(":");
+                                        if (dataStr.length > 2) {
+                                            responseLength = Integer.parseInt(dataStr[2]);
+                                            response = new byte[responseLength];
+                                            Log.i(TAG, "receive length : " + responseLength);
+                                            conn.writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, new byte[]{(byte) ButtonPusherCmd.COMMAND_RECEIVE_KEYS.ordinal()}, null);
+                                        }
+                                    }
+                                }
+                                break;
+                            default:
+                                break;
                         }
-                        break;
-                    case COMMAND_ASSOCIATION_STATUS:
+                        /*
+                        if (charac.getUuid().toString().equals(RFDUINO_RECEIVE_CHARAC)) {
 
-                        if (charac.getValue().length > 2) {
+                            if (charac.getValue().length > 0) {
 
-                            if (((charac.getValue()[2] & 0xFF) - 48) == 1) {
-                                if (mAssociationStatusListener != null) {
-                                    mAssociationStatusListener.onStatusFailure();
-                                }
-                            } else if (((charac.getValue()[2] & 0xFF) - 48) == 0) {
-                                if (mAssociationStatusListener != null) {
-                                    mAssociationStatusListener.onStatusSuccess();
-                                }
-                            }
-                        }
-                        break;
-                    case COMMAND_FAILURE:
-                        if (charac.getValue().length > 0) {
-                            Log.e(TAG, "command failure");
-                        }
-                        break;
-                    case COMMAND_ASSOCIATE:
-                        if (charac.getValue().length > 2) {
+                                TransmitState state = TransmitState.getTransmitState(charac.getValue()[0]);
 
-                            if (((charac.getValue()[2] & 0xFF) - 48) == 1) {
-                                if (mAssociationListener != null) {
-                                    mAssociationListener.onAssociationFailure();
-                                }
-                            } else if (((charac.getValue()[2] & 0xFF) - 48) == 0) {
-                                if (mAssociationListener != null) {
-                                    mAssociationListener.onAssociationSuccess();
-                                }
-                            } else if (((charac.getValue()[2] & 0xFF) - 48) == 2) {
-                                if (mAssociationListener != null) {
-                                    mAssociationListener.onUserActionRequired();
-                                }
-                            }
-                        }
-                        break;
-                    default:
-                        break;
-                }
-                /*
-                if (charac.getUuid().toString().equals(RFDUINO_RECEIVE_CHARAC)) {
+                                switch (state) {
 
-                    if (charac.getValue().length > 0) {
+                                    case TRANSMIT_OK:
+                                        if (sendIndex != sendingNum) {
+                                            Log.i(TAG, "received TRANSMIT_OK sending next batch of frames");
 
-                        TransmitState state = TransmitState.getTransmitState(charac.getValue()[0]);
-
-                        switch (state) {
-
-                            case TRANSMIT_OK:
-                                if (sendIndex != sendingNum) {
-                                    Log.i(TAG, "received TRANSMIT_OK sending next batch of frames");
-
-                                    threadPool.execute(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            RfduinoDevice.this.conn.writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, new byte[]{(byte) TransmitState.TRANSMITTING.ordinal()}, new IPushListener() {
+                                            threadPool.execute(new Runnable() {
                                                 @Override
-                                                public void onPushFailure() {
-                                                    Log.e(TAG, "error happenend setting bitmap length");
-                                                }
+                                                public void run() {
+                                                    RfduinoDevice.this.conn.writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, new byte[]{(byte) TransmitState.TRANSMITTING.ordinal()}, new IPushListener() {
+                                                        @Override
+                                                        public void onPushFailure() {
+                                                            Log.e(TAG, "error happenend setting bitmap length");
+                                                        }
 
-                                                @Override
-                                                public void onPushSuccess() {
-                                                    Log.i(TAG, "set bitmap length successfull");
-                                                    frameNumToSend = 128;
-                                                    sendBitmapSequence();
+                                                        @Override
+                                                        public void onPushSuccess() {
+                                                            Log.i(TAG, "set bitmap length successfull");
+                                                            frameNumToSend = 128;
+                                                            sendBitmapSequence();
+                                                        }
+                                                    });
                                                 }
                                             });
+                                        } else {
+                                            Log.i(TAG, "sending is over. Waiting for complete");
                                         }
-                                    });
-                                } else {
-                                    Log.i(TAG, "sending is over. Waiting for complete");
+                                        break;
+                                    case TRANSMIT_COMPLETE:
+                                        Log.i(TAG, "received TRANSMIT_COMPLETE");
+                                        clearBimapInfo();
+                                        break;
                                 }
-                                break;
-                            case TRANSMIT_COMPLETE:
-                                Log.i(TAG, "received TRANSMIT_COMPLETE");
-                                clearBimapInfo();
-                                break;
+                            }
                         }
-                    }
+                        */
+                        break;
+                    case RECEIVING:
+                        Log.i(TAG, "in RECEIVING state : " + charac.getValue().length);
+                        for (int i = 0; i < charac.getValue().length; i++) {
+                            response[responseIndex++] = charac.getValue()[i];
+                        }
+                        Log.i(TAG, "responseIndex : " + responseIndex);
+                        if (responseIndex == responseLength) {
+                            mState = NotificationState.SENDING;
+                            Log.i(TAG, "received everything");
+                            byte[] encodedKey = new byte[64];
+                            byte[] encodedIv = new byte[64];
+
+                            System.arraycopy(response, 0, encodedKey, 0, 64);
+                            System.arraycopy(response, 64, encodedIv, 0, 64);
+
+                            Log.i(TAG, "key : " + bytesToHex(mExternalKey));
+                            Log.i(TAG, "iv  : " + bytesToHex(mExternalIv));
+
+                            Log.i(TAG, "encoded key : " + bytesToHex(encodedKey));
+                            Log.i(TAG, "encoded iv  : " + bytesToHex(encodedIv));
+
+                            byte[] decodedKey = BtPusherService.decrypt(encodedKey, 64, mExternalKey, Arrays.copyOf(mExternalIv, mExternalIv.length));
+                            byte[] decodedIv = BtPusherService.decrypt(encodedIv, 64, mExternalKey, Arrays.copyOf(mExternalIv, mExternalIv.length));
+
+                            Log.i(TAG, "decoded key : " + bytesToHex(decodedKey));
+                            Log.i(TAG, "decoded iv  : " + bytesToHex(decodedIv));
+
+                            for (int i = 0; i < 32; i++) {
+                                mAesKey[i] = decodedKey[i];
+                            }
+                            for (int i = 0; i < 16; i++) {
+                                mIv[i] = decodedIv[i];
+                            }
+
+                            SharedPreferences.Editor editor = sharedPref.edit();
+                            editor.putString(SharedPrefConst.AES_KEY, Base64.encodeToString(mAesKey, Base64.DEFAULT));
+                            editor.putString(SharedPrefConst.IV, Base64.encodeToString(mIv, Base64.DEFAULT));
+                            editor.commit();
+
+                            if (mAssociationListener != null) {
+                                mAssociationListener.onAssociationSuccess();
+                            }
+                        } else {
+                            Log.i(TAG, "requesting next batch");
+                            conn.writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, new byte[]{(byte) ButtonPusherCmd.COMMAND_RECEIVE_KEYS.ordinal()}, null);
+                        }
+                        break;
                 }
-                */
             }
 
             @Override
@@ -327,7 +406,7 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
             Log.i(TAG, "output : " + bytesToHex(data));
 
-            return BtPusherService.encrypt(data, data.length, mAesKey, mIv);
+            return BtPusherService.encrypt(data, data.length, mAesKey, Arrays.copyOf(mIv, mIv.length));
 
         } else {
             Log.e(TAG, "token length cant be <20");
@@ -347,6 +426,8 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
     @Override
     public void sendPush(String password, IPushListener listener) {
+
+        mState = NotificationState.SENDING;
 
         mAssociationStatusListener = new IAssociationStatusListener() {
             @Override
@@ -404,13 +485,13 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
                                     }
                                     Log.i(TAG, "code    : " + bytesToHex(codeBa));
                                     Log.i(TAG, "Build.SERIAL : " + Build.SERIAL + " serial  : " + bytesToHex(serial));
-                                    byte[] key = BtPusherService.generatekey(codeBa);
-                                    byte[] iv = BtPusherService.generateiv(codeBa);
+                                    mExternalKey = BtPusherService.generatekey(codeBa);
+                                    mExternalIv = BtPusherService.generateiv(codeBa);
 
-                                    Log.i(TAG, "key : " + bytesToHex(key));
-                                    Log.i(TAG, "iv  : " + bytesToHex(iv));
+                                    Log.i(TAG, "key : " + bytesToHex(mExternalKey));
+                                    Log.i(TAG, "iv  : " + bytesToHex(mExternalIv));
 
-                                    sendBitmap((byte) ButtonPusherCmd.COMMAND_ASSOCIATE_RESPONSE.ordinal(), BtPusherService.encrypt(data, data.length, key, iv));
+                                    sendBitmap((byte) ButtonPusherCmd.COMMAND_ASSOCIATE_RESPONSE.ordinal(), BtPusherService.encrypt(data, data.length, mExternalKey, Arrays.copyOf(mExternalIv, mExternalIv.length)));
 
                                 } else {
                                     Log.e(TAG, "error code is invalid");
@@ -564,6 +645,9 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
     }
 
     private void sendBitmap(byte cmd, final byte[] bitmapData) {
+
+        mState = NotificationState.SENDING;
+
         Log.i(TAG, "send bitmap with length : " + bitmapData.length);
 
         sendingNum = bitmapData.length / SENDING_BUFFER_MAX_LENGTH;

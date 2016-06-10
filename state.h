@@ -29,4 +29,5 @@
 */
 E(STATE_NONE       , 0x00)
 E(STATE_PROCESSING , 0x01)
+E(STATE_SENDING    , 0x02)
 #undef E
