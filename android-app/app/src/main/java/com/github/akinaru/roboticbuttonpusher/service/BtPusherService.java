@@ -364,6 +364,28 @@ public class BtPusherService extends Service {
 
                     }
                 }, USER_CODE_TIMEOUT, TimeUnit.MILLISECONDS);
+
+            } else if (action.equals(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_SUCCESS)) {
+
+                if (mTimeoutTask != null) {
+                    mTimeoutTask.cancel(true);
+                }
+
+                btManager.disconnectAndRemove(mDeviceAdress);
+                mState = ButtonPusherState.PROCESS_END;
+                changeState(mState);
+                mState = ButtonPusherState.NONE;
+                changeState(mState);
+
+            } else if (action.equals(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_FAILURE)) {
+
+                if (mTimeoutTask != null) {
+                    mTimeoutTask.cancel(true);
+                }
+                dispatchError(ButtonPusherError.ASSOCIATION_FAILURE);
+                btManager.disconnectAndRemove(mDeviceAdress);
+                mState = ButtonPusherState.NONE;
+                changeState(mState);
             }
         }
     };
@@ -408,6 +430,8 @@ public class BtPusherService extends Service {
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_RETRY);
         intentFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_USER_ACTION_REQUIRED);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_FAILURE);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_SUCCESS);
         return intentFilter;
     }
 

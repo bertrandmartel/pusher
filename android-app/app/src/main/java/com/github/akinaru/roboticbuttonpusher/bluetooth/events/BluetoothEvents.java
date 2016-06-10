@@ -34,4 +34,6 @@ public class BluetoothEvents {
     public final static String BT_EVENT_DEVICE_REMOVED = "com.github.akinaru.roboticbuttonpusher.bluetooth.BT_EVENT_DEVICE_REMOVED";
     public final static String BT_EVENT_DEVICE_RETRY = "com.github.akinaru.roboticbuttonpusher.bluetooth.BT_EVENT_DEVICE_RETRY";
     public final static String BT_EVENT_DEVICE_USER_ACTION_REQUIRED = "com.github.akinaru.roboticbuttonpusher.bluetooth.BT_EVENT_DEVICE_USER_ACTION_REQUIRED";
+    public final static String BT_EVENT_DEVICE_ASSOCIATION_SUCCESS = "com.github.akinaru.roboticbuttonpusher.bluetooth.BT_EVENT_DEVICE_ASSOCIATION_SUCCESS";
+    public final static String BT_EVENT_DEVICE_ASSOCIATION_FAILURE = "com.github.akinaru.roboticbuttonpusher.bluetooth.BT_EVENT_DEVICE_ASSOCIATION_FAILURE";
 }
