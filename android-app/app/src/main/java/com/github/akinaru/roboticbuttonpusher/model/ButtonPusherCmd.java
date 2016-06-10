@@ -13,6 +13,7 @@ public enum ButtonPusherCmd {
     COMMAND_SET_KEY(0x05),
     COMMAND_FAILURE(0x06),
     COMMAND_ASSOCIATE_RESPONSE(0x07),
+    COMMAND_RECEIVE_KEYS(0x08),
     COMMAND_NONE(0xFF);
 
     private int mCode;

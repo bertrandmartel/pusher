@@ -65,6 +65,8 @@ public class BtPusherService extends Service {
 
     public static native byte[] encrypt(byte[] message, int length, byte[] key, byte[] iv);
 
+    public static native byte[] decrypt(byte[] cipher, int length, byte[] key, byte[] iv);
+
     public static native byte[] generatekey(byte[] code);
 
     public static native byte[] generateiv(byte[] code);
@@ -86,7 +88,7 @@ public class BtPusherService extends Service {
 
     private static final int SCAN_TIMEOUT = 2500;
 
-    private static final int NOTIFICATION_TIMEOUT = 5000;
+    private static final int NOTIFICATION_TIMEOUT = 10000;
 
     private static final int USER_CODE_TIMEOUT = 60000;
 
