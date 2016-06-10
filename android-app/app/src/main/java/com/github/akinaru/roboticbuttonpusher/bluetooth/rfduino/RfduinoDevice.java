@@ -433,6 +433,8 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
             @Override
             public void onStatusSuccess() {
                 Log.i(TAG, "You are already associated to this device");
+                conn.disconnect();
+                conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_FAILURE, new ArrayList<String>());
             }
 
             @Override
@@ -450,11 +452,14 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
                             @Override
                             public void onAssociationSuccess() {
                                 Log.i(TAG, "association success");
+                                conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_SUCCESS, new ArrayList<String>());
                             }
 
                             @Override
                             public void onAssociationFailure() {
                                 Log.e(TAG, "association failure");
+                                conn.disconnect();
+                                conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_FAILURE, new ArrayList<String>());
                             }
 
                             @Override
@@ -468,7 +473,7 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
                                 Log.i(TAG, "user action committed : " + code);
 
-                                if (code.toUpperCase().matches("[0123456789ABCDEF]*")) {
+                                if (code.toUpperCase().matches("[0123456789ABCDEF]*") && (code.length() % 2 == 0)) {
 
                                     byte[] codeBa = hexStringToByteArray(code.toUpperCase());
                                     byte[] serial = hexStringToByteArray(Build.SERIAL);
@@ -495,6 +500,7 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
                                 } else {
                                     Log.e(TAG, "error code is invalid");
+                                    mAssociationListener.onAssociationFailure();
                                 }
                             }
                         };

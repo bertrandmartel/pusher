@@ -43,7 +43,20 @@
                         android:clickable="true"
                         android:gravity="center"
                         android:scaleType="center"
-                        android:src="@drawable/ic_lock_open"
+                        android:src="@drawable/ic_action_link"
+                        app:borderWidth="0dp"
+                        app:elevation="24dp" />
+
+                    <android.support.design.widget.FloatingActionButton
+                        android:id="@+id/fab_associated"
+                        android:layout_width="150dp"
+                        android:layout_height="150dp"
+                        android:layout_gravity="center"
+                        android:clickable="true"
+                        android:gravity="center"
+                        android:scaleType="center"
+                        android:src="@drawable/ic_touch_app"
+                        android:visibility="gone"
                         app:borderWidth="0dp"
                         app:elevation="24dp" />
 
@@ -79,8 +92,8 @@
                         android:id="@+id/dot_progress_bar"
                         android:layout_width="match_parent"
                         android:layout_height="50dp"
-                        android:visibility="gone"
                         android:layout_gravity="center"
+                        android:visibility="gone"
                         custom:amount="5"
                         custom:duration="@android:integer/config_mediumAnimTime"
                         custom:endColor="@color/light_blue_A400"

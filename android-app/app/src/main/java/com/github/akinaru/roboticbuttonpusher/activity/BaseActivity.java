@@ -104,6 +104,8 @@ public abstract class BaseActivity extends AppCompatActivity implements IButtonP
 
     protected boolean mFailure = false;
 
+    protected boolean mAssociated = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

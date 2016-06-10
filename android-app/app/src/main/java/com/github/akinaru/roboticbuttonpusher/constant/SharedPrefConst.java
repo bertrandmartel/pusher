@@ -19,6 +19,8 @@ public class SharedPrefConst {
 
     public static final String AES_KEY = "aesKey";
 
+    public static final String ASSOCIATED_STATUS = "associated";
+
     public static final String DEVICE_PASSWORD_FIELD = "password";
 
     public static final String DEBUG_MODE_FIELD = "debugMode";

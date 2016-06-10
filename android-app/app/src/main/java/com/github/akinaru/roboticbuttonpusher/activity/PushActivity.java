@@ -66,6 +66,7 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
     private boolean mDebugMode;
 
     private FloatingActionButton button;
+    private FloatingActionButton buttonAssociated;
 
     private PushSingleton mSingleton;
 
@@ -148,8 +149,14 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
                         } else {
                             mImgSelection.setVisibility(View.GONE);
                         }
-                        button.setVisibility(View.VISIBLE);
-                        button.startAnimation(mAnimationDefaultScaleUp);
+                        if (!mAssociated) {
+                            button.setVisibility(View.VISIBLE);
+                            button.startAnimation(mAnimationDefaultScaleUp);
+                        }
+                        else{
+                            buttonAssociated.setVisibility(View.VISIBLE);
+                            buttonAssociated.startAnimation(mAnimationDefaultScaleUp);
+                        }
                     }
                 });
 
@@ -162,13 +169,20 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
         mDeviceName = sharedPref.getString(SharedPrefConst.DEVICE_NAME_FIELD, SharedPrefConst.DEFAULT_DEVICE_NAME);
         mPassword = sharedPref.getString(SharedPrefConst.DEVICE_PASSWORD_FIELD, SharedPrefConst.DEFAULT_PASSWORD);
         mDebugMode = sharedPref.getBoolean(SharedPrefConst.DEBUG_MODE_FIELD, DEFAULT_DEBUG_MODE);
-
+        mAssociated = sharedPref.getBoolean(SharedPrefConst.ASSOCIATED_STATUS, false);
         mImgSelection = (FloatingActionButton) findViewById(R.id.img_selection);
 
         mSingleton = PushSingleton.getInstance();
         mSingleton.setSingletonListener(this);
 
+        if (mAssociated) {
+            findViewById(R.id.fab).setVisibility(View.GONE);
+            findViewById(R.id.fab_associated).setVisibility(View.VISIBLE);
+        }
+
         button = (FloatingActionButton) findViewById(R.id.fab);
+        buttonAssociated = (FloatingActionButton) findViewById(R.id.fab_associated);
+
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -189,6 +203,24 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
             }
         });
 
+        buttonAssociated.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        buttonAssociated.setVisibility(View.GONE);
+                        dotProgressBar.setVisibility(View.VISIBLE);
+                        dotProgressBar.setAlpha(1);
+                    }
+                });
+
+
+                clearReplaceDebugTv("Scanning for device ...");
+
+                mSingleton.startPushTask();
+            }
+        });
         if (Build.VERSION.SDK_INT >= 23) {
             if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 Log.i(TAG, "requesting location permission");
@@ -334,6 +366,26 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
                         }
                     });
                 }
+            } else if (BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_SUCCESS.equals(action)) {
+                Log.v(TAG, "association success");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mAssociated = true;
+                        SharedPreferences.Editor editor = sharedPref.edit();
+                        editor.putBoolean(SharedPrefConst.ASSOCIATED_STATUS, mAssociated);
+                        editor.commit();
+                        Toast.makeText(PushActivity.this, "association success", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } else if (BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_FAILURE.equals(action)) {
+                Log.v(TAG, "association failure");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(PushActivity.this, "association failure", Toast.LENGTH_SHORT).show();
+                    }
+                });
             }
         }
     };
@@ -467,6 +519,8 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_USER_ACTION_REQUIRED);
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_DISCONNECTED);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_SUCCESS);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_FAILURE);
         return intentFilter;
     }
 }
