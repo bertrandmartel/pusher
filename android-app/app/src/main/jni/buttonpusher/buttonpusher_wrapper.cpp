@@ -162,14 +162,6 @@ JNIEXPORT jbyteArray JNICALL Java_com_github_akinaru_roboticbuttonpusher_service
 			succ = ButtonPusher::aes.encrypt(payload, cipher) ;
 		}
 		else {
-			/*
-			byte iv_b[N_BLOCK];
-
-			for (int i = 0 ; i < N_BLOCK ; i++){
-				iv_b[i] = iv_c[i] ;
-			}
-			*/
-
 			succ = ButtonPusher::aes.cbc_encrypt (payload, cipher, blocks, iv_c) ;
 		}
 		

@@ -366,30 +366,39 @@ public class BtPusherService extends Service {
                 }, USER_CODE_TIMEOUT, TimeUnit.MILLISECONDS);
 
             } else if (action.equals(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_SUCCESS)) {
-
-                if (mTimeoutTask != null) {
-                    mTimeoutTask.cancel(true);
-                }
-
-                btManager.disconnectAndRemove(mDeviceAdress);
-                mState = ButtonPusherState.PROCESS_END;
-                changeState(mState);
-                mState = ButtonPusherState.NONE;
-                changeState(mState);
-
+                sendSuccess();
             } else if (action.equals(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_FAILURE)) {
-
-                if (mTimeoutTask != null) {
-                    mTimeoutTask.cancel(true);
-                }
-                dispatchError(ButtonPusherError.ASSOCIATION_FAILURE);
-                btManager.disconnectAndRemove(mDeviceAdress);
-                mState = ButtonPusherState.NONE;
-                changeState(mState);
+                sendFailure(ButtonPusherError.ASSOCIATION_FAILURE);
+            } else if (action.equals(BluetoothEvents.BT_EVENT_DEVICE_PUSH_SUCCESS)) {
+                sendSuccess();
+            } else if (action.equals(BluetoothEvents.BT_EVENT_DEVICE_PUSH_FAILURE)) {
+                sendFailure(ButtonPusherError.PUSH_FAILURE);
             }
         }
     };
 
+    private void sendSuccess() {
+        if (mTimeoutTask != null) {
+            mTimeoutTask.cancel(true);
+        }
+
+        btManager.disconnectAndRemove(mDeviceAdress);
+        mState = ButtonPusherState.PROCESS_END;
+        changeState(mState);
+        mState = ButtonPusherState.NONE;
+        changeState(mState);
+    }
+
+    private void sendFailure(ButtonPusherError error) {
+
+        if (mTimeoutTask != null) {
+            mTimeoutTask.cancel(true);
+        }
+        dispatchError(error);
+        btManager.disconnectAndRemove(mDeviceAdress);
+        mState = ButtonPusherState.NONE;
+        changeState(mState);
+    }
 
     private void changeState(final ButtonPusherState state) {
         mHandler.post(new Runnable() {
@@ -432,6 +441,8 @@ public class BtPusherService extends Service {
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_USER_ACTION_REQUIRED);
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_FAILURE);
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_SUCCESS);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_PUSH_SUCCESS);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_PUSH_FAILURE);
         return intentFilter;
     }
 
