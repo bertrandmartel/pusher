@@ -519,6 +519,16 @@ void sendAssociationStatus(bool status){
   RFduinoBLE.send(req,3);
 }
 
+void sendPushStatus(bool status){
+  char req[2]={0};
+  uint8_t status_d = 1;
+  if (status){
+    status_d=0;
+  }
+  sprintf(req, "%d:%d", COMMAND_PUSH,status_d);
+  RFduinoBLE.send(req,3);
+}
+
 void sendAssociationActionStatus(bool status){
 
   char req[2]={0};
@@ -608,6 +618,100 @@ void executeCmd(byte *check){
     }
     case COMMAND_PUSH:
     {
+      Serial.println("processing push...");
+
+      if (strlen(token) == 0){
+        Serial.println("no token");
+        sendPushStatus(false);
+        return;
+      }
+
+      char device_id[8];
+      Serial.print("device id : ");
+      for (int i = 0; i< 8;i++){
+        device_id[i] = check[i];
+        Serial.print((uint8_t)device_id[i]);
+        Serial.print(" ");
+      }
+      Serial.println("");
+
+      char * xor_key = is_associated(device_id);
+
+      if (xor_key!=0){
+        Serial.println("device associated, continuing ...");
+        char xored_hash[28];
+        for (int i = 8;i < 36;i++){
+          xored_hash[i-8] = check[i];
+        }
+
+        char xor_decoded[28];
+
+        Serial.println("xor decoded : ");
+        for (int j = 0 ;j  < 28;j++){
+          xor_decoded[j]=xored_hash[j]^xor_key[j];
+        }
+
+        for (int i = 0; i < 8;i++){
+          Serial.print((int)xor_decoded[i]);
+          Serial.print("=>");
+          Serial.print((int)token[i]);
+          Serial.print(" ");
+        }
+        Serial.println("");
+
+        if (memcmp(token,xor_decoded,8)==0){
+          memset(token, 0, 8);
+
+          char sent_pass[64];
+
+          for (int i = 8;i<28;i++){
+            sent_pass[i-8] = xor_decoded[i];
+          }
+          for (int i = 20;i<64;i++){
+            sent_pass[i]=0;
+          }
+
+          //decrypt current pass
+          byte pass[64];
+          byte iv[16];
+          byte cipher[64];
+          byte succ = aes.set_key (key, 256);
+
+          for (byte i = 0 ; i < 16 ; i++){
+            iv[i] = my_iv[i] ;
+          }
+          for (byte i = 0 ; i< 64;i++){
+            cipher[i] = config.pass[i];
+          }
+          //decrypt
+          succ = aes.cbc_decrypt(cipher, pass, 4, iv) ;
+
+          if (memcmp(sent_pass,pass,64)==0){
+            Serial.println("push success");
+            sendPushStatus(true);
+
+            digitalWrite(led, HIGH);
+            s1.attach(2);
+            motor_process();
+            s1.detach();
+            digitalWrite(led, LOW);
+
+          }
+          else{
+            Serial.println("push failure : bad pass");
+            sendPushStatus(false);
+          } 
+        }
+        else{
+          memset(token, 0, 8);
+          Serial.println("push failure : bad token");
+          sendPushStatus(false);
+        }
+      }
+      else{
+        Serial.println("device not associated, aborting ...");
+        sendPushStatus(false);
+      }
       break;
     }
     case COMMAND_SET_PASSWORD:
@@ -898,20 +1002,39 @@ void RFduinoBLE_onReceive(char *data, int len){
         case COMMAND_ASSOCIATION_STATUS:
         {
           Serial.println(COMMAND_STRING_ENUM[cmd]);
-          state = STATE_PROCESSING;
-          data_length = data[2] + (data[1]<<8);
-          payload = (uint8_t*)malloc(data_length + 1);
-          memset(payload, 0, data_length + 1);
+          if (len>1){
+            state = STATE_PROCESSING;
+            data_length = data[2] + (data[1]<<8);
+            payload = (uint8_t*)malloc(data_length + 1);
+            memset(payload, 0, data_length + 1);
 
-          Serial.print("cmd: ");
-          Serial.println(cmd);
-          Serial.print("data_length: ");
-          Serial.println(data_length);
+            Serial.print("cmd: ");
+            Serial.println(cmd);
+            Serial.print("data_length: ");
+            Serial.println(data_length);
+          }
+          else{
+            Serial.println("error length error for COMMAND_ASSOCIATION_STATUS");
+          }
           break;
         }
         case COMMAND_PUSH:
         {
           Serial.println(COMMAND_STRING_ENUM[cmd]);
+          if (len>1){
+            state = STATE_PROCESSING;
+            data_length = data[2] + (data[1]<<8);
+            payload = (uint8_t*)malloc(data_length + 1);
+            memset(payload, 0, data_length + 1);
+
+            Serial.print("cmd: ");
+            Serial.println(cmd);
+            Serial.print("data_length: ");
+            Serial.println(data_length);
+          }
+          else{
+            Serial.println("error length error for COMMAND_PUSH");
+          }
           break;
         }
         case COMMAND_SET_PASSWORD:
@@ -1116,7 +1239,6 @@ void RFduinoBLE_onReceive(char *data, int len){
         //decrypt
         succ = aes.cbc_decrypt(cipher, check, 4, iv) ;
 
-
         if (succ==0){
           executeCmd(check);
         }
@@ -1124,7 +1246,6 @@ void RFduinoBLE_onReceive(char *data, int len){
           //send failure
           sendCommandFailure();
         }
-
         free(payload);
         payload = 0;
         state=STATE_NONE;
