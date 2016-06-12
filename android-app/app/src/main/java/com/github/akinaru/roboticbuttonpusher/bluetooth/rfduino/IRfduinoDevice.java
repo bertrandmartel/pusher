@@ -18,7 +18,7 @@
  */
 package com.github.akinaru.roboticbuttonpusher.bluetooth.rfduino;
 
-import com.github.akinaru.roboticbuttonpusher.bluetooth.listener.IPushListener;
+import com.github.akinaru.roboticbuttonpusher.model.BtnPusherKeysType;
 
 /**
  * Generic interface for Rfduino device
@@ -27,7 +27,11 @@ import com.github.akinaru.roboticbuttonpusher.bluetooth.listener.IPushListener;
  */
 public interface IRfduinoDevice {
 
-    void sendPush(String password, IPushListener listener);
+    void sendPush(String password);
 
     void sendAssociationCode(String code);
+
+    void setPassword(String password);
+
+    void setKeys(String password, BtnPusherKeysType keysType);
 }
