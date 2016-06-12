@@ -37,6 +37,8 @@ import com.github.akinaru.roboticbuttonpusher.constant.SharedPrefConst;
 import com.github.akinaru.roboticbuttonpusher.inter.IAssociateListener;
 import com.github.akinaru.roboticbuttonpusher.inter.IAssociationStatusListener;
 import com.github.akinaru.roboticbuttonpusher.inter.ITokenListener;
+import com.github.akinaru.roboticbuttonpusher.model.BtnPusherInputTask;
+import com.github.akinaru.roboticbuttonpusher.model.BtnPusherKeysType;
 import com.github.akinaru.roboticbuttonpusher.model.ButtonPusherCmd;
 import com.github.akinaru.roboticbuttonpusher.model.NotificationState;
 import com.github.akinaru.roboticbuttonpusher.service.BtPusherService;
@@ -98,6 +100,8 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
     private byte[] mToken;
     private String mPassword;
+    private String mTemporaryPassword;
+    private boolean generateDefaultKey = false;
 
     /*
      * Creates a new pool of Thread objects for the download work queue
@@ -440,17 +444,17 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
             byte[] decodedVal = new byte[28];
             System.arraycopy(token, 0, decodedVal, 0, 8);
-            Log.i(TAG,"complete1 : " + bytesToHex(decodedVal));
+            Log.i(TAG, "complete1 : " + bytesToHex(decodedVal));
             for (int i = 0; i < password.length; i++) {
                 decodedVal[i + 8] = password[i];
             }
-            Log.i(TAG,"complete2 : " + bytesToHex(decodedVal));
+            Log.i(TAG, "complete2 : " + bytesToHex(decodedVal));
             if (password.length < 20) {
                 for (int i = password.length; i < 20; i++) {
-                    decodedVal[i+8] = 0;
+                    decodedVal[i + 8] = 0;
                 }
             }
-            Log.i(TAG,"complete3 : " + bytesToHex(decodedVal));
+            Log.i(TAG, "complete3 : " + bytesToHex(decodedVal));
 
             Log.i(TAG, "token length : " + token.length);
             byte[] xored = new byte[28];
@@ -496,7 +500,216 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
     }
 
     @Override
-    public void sendPush(String password, IPushListener listener) {
+    public void setKeys(String password, BtnPusherKeysType keysType) {
+        switch (keysType) {
+            case DEFAULT:
+                generateDefaultKey = true;
+                sendCommand(BtnPusherInputTask.KEYS_DEFAULT);
+                break;
+            case GENERATED:
+                generateDefaultKey = false;
+                sendCommand(BtnPusherInputTask.KEYS_GENERATED);
+                break;
+        }
+    }
+
+    @Override
+    public void setPassword(String password) {
+        mTemporaryPassword = password;
+        sendCommand(BtnPusherInputTask.PASSWORD);
+    }
+
+    private void sendCommand(final BtnPusherInputTask task) {
+
+        mState = NotificationState.SENDING;
+
+        mAssociationStatusListener = new IAssociationStatusListener() {
+            @Override
+            public void onStatusSuccess() {
+                Log.i(TAG, "You are already associated to this device");
+
+                mTokenListener = new ITokenListener() {
+                    @Override
+                    public void onTokenReceived(byte[] token) {
+
+                        mToken = token;
+                        Log.i(TAG, "token received sending association status request");
+
+                        mPushListener = new IPushListener() {
+                            @Override
+                            public void onPushFailure() {
+                                switch (task) {
+                                    case PUSH:
+                                        Log.i(TAG, "push failure");
+                                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_PUSH_FAILURE, new ArrayList<String>());
+                                        break;
+                                    case PASSWORD:
+                                        Log.i(TAG, "set password failure");
+                                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_SET_PASSWORD_FAILURE, new ArrayList<String>());
+                                        break;
+                                    case KEYS_DEFAULT:
+                                        Log.i(TAG, "set key default failure");
+                                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_SET_KEYS_FAILURE, new ArrayList<String>());
+                                        break;
+                                    case KEYS_GENERATED:
+                                        Log.i(TAG, "set key generated failure");
+                                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_SET_KEYS_FAILURE, new ArrayList<String>());
+                                        break;
+                                }
+                            }
+
+                            @Override
+                            public void onPushSuccess() {
+
+                                switch (task) {
+                                    case PUSH:
+                                        Log.i(TAG, "push success");
+                                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_PUSH_SUCCESS, new ArrayList<String>());
+                                        break;
+                                    case PASSWORD:
+                                        Log.i(TAG, "set password success");
+                                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_SET_PASSWORD_SUCCESS, new ArrayList<String>());
+                                        break;
+                                    case KEYS_DEFAULT:
+                                        Log.i(TAG, "set key default success");
+                                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_SET_KEYS_SUCCESS, new ArrayList<String>());
+                                        break;
+                                    case KEYS_GENERATED:
+                                        Log.i(TAG, "set key generated success");
+                                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_SET_KEYS_SUCCESS, new ArrayList<String>());
+                                        break;
+                                }
+                            }
+                        };
+
+                        switch (task) {
+                            case PUSH:
+                                sendBitmap((byte) ButtonPusherCmd.COMMAND_PUSH.ordinal(), buildPushRequest(mToken, mPassword.getBytes()));
+                                break;
+                            case PASSWORD:
+                                sendBitmap((byte) ButtonPusherCmd.COMMAND_SET_PASSWORD.ordinal(), buildPushRequest(mToken, mPassword.getBytes()));
+                                break;
+                            case KEYS_DEFAULT:
+                                sendBitmap((byte) ButtonPusherCmd.COMMAND_SET_KEY.ordinal(), buildPushRequest(mToken, mPassword.getBytes()));
+                                break;
+                            case KEYS_GENERATED:
+                                sendBitmap((byte) ButtonPusherCmd.COMMAND_SET_KEY.ordinal(), buildPushRequest(mToken, mPassword.getBytes()));
+                                break;
+                        }
+                    }
+                };
+
+                conn.writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, new byte[]{(byte) ButtonPusherCmd.COMMAND_GET_TOKEN.ordinal()}, null);
+            }
+
+            @Override
+            public void onStatusFailure() {
+                Log.e(TAG, "You are not yet associated with this device. Associating ...");
+
+                switch (task) {
+                    case PUSH:
+                        mTokenListener = new ITokenListener() {
+
+                            @Override
+                            public void onTokenReceived(final byte[] token) {
+
+                                Log.i(TAG, "token received sending associate request");
+
+                                mAssociationListener = new IAssociateListener() {
+                                    @Override
+                                    public void onAssociationSuccess() {
+                                        Log.i(TAG, "association success");
+                                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_SUCCESS, new ArrayList<String>());
+                                    }
+
+                                    @Override
+                                    public void onAssociationFailure() {
+                                        Log.e(TAG, "association failure");
+                                        conn.disconnect();
+                                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_FAILURE, new ArrayList<String>());
+                                    }
+
+                                    @Override
+                                    public void onUserActionRequired() {
+                                        Log.i(TAG, "user action required");
+                                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_USER_ACTION_REQUIRED, new ArrayList<String>());
+                                    }
+
+                                    @Override
+                                    public void onUserActionCommitted(String code) {
+
+                                        Log.i(TAG, "user action committed : " + code);
+
+                                        if (code.toUpperCase().matches("[0123456789ABCDEF]*") && (code.length() % 2 == 0)) {
+
+                                            byte[] codeBa = hexStringToByteArray(code.toUpperCase());
+                                            byte[] serial = hexStringToByteArray(Build.SERIAL);
+                                            byte[] data = new byte[8 + 32 + 8];
+
+                                            for (int j = 0; j < 8; j++) {
+                                                data[j] = serial[j];
+                                            }
+                                            for (int j = 0; j < 32; j++) {
+                                                data[j + 8] = mXorKey[j];
+                                            }
+                                            for (int j = 0; j < 8; j++) {
+                                                data[j + 40] = token[j];
+                                            }
+                                            Log.i(TAG, "code    : " + bytesToHex(codeBa));
+                                            Log.i(TAG, "Build.SERIAL : " + Build.SERIAL + " serial  : " + bytesToHex(serial));
+                                            mExternalKey = BtPusherService.generatekey(codeBa);
+                                            mExternalIv = BtPusherService.generateiv(codeBa);
+
+                                            Log.i(TAG, "key : " + bytesToHex(mExternalKey));
+                                            Log.i(TAG, "iv  : " + bytesToHex(mExternalIv));
+
+                                            sendBitmap((byte) ButtonPusherCmd.COMMAND_ASSOCIATE_RESPONSE.ordinal(), BtPusherService.encrypt(data, data.length, mExternalKey, Arrays.copyOf(mExternalIv, mExternalIv.length)));
+
+                                        } else {
+                                            Log.e(TAG, "error code is invalid");
+                                            mAssociationListener.onAssociationFailure();
+                                        }
+                                    }
+                                };
+
+                                conn.writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, new byte[]{(byte) ButtonPusherCmd.COMMAND_ASSOCIATE.ordinal()}, null);
+                            }
+                        };
+
+                        conn.writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, new byte[]{(byte) ButtonPusherCmd.COMMAND_GET_TOKEN.ordinal()}, null);
+
+                    case PASSWORD:
+                        Log.e(TAG, "set password failure");
+                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_SET_PASSWORD_FAILURE, new ArrayList<String>());
+                        break;
+                    case KEYS_DEFAULT:
+                        Log.e(TAG, "set keys default failure");
+                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_SET_KEYS_FAILURE, new ArrayList<String>());
+                        break;
+                    case KEYS_GENERATED:
+                        Log.e(TAG, "set keys generated failure");
+                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_SET_KEYS_FAILURE, new ArrayList<String>());
+                        break;
+                    default:
+                        break;
+                }
+            }
+        };
+
+        mTokenListener = new ITokenListener() {
+            @Override
+            public void onTokenReceived(byte[] token) {
+                mToken = token;
+                Log.i(TAG, "token received sending association status request");
+                sendBitmap((byte) ButtonPusherCmd.COMMAND_ASSOCIATION_STATUS.ordinal(), buildAssociationStatusRequest(mToken));
+            }
+        };
+
+        conn.writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, new byte[]{(byte) ButtonPusherCmd.COMMAND_GET_TOKEN.ordinal()}, null);
+    }
+
+    @Override
+    public void sendPush(String password) {
 
         mState = NotificationState.SENDING;
 
@@ -614,57 +827,10 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
                 mToken = token;
                 Log.i(TAG, "token received sending association status request");
                 sendBitmap((byte) ButtonPusherCmd.COMMAND_ASSOCIATION_STATUS.ordinal(), buildAssociationStatusRequest(mToken));
-                //sendBitmap((byte) ButtonPusherCmd.COMMAND_ASSOCIATION_STATUS.ordinal(), BtPusherService.encrypt("admin".getBytes(), "admin".getBytes().length));
             }
         };
 
         conn.writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, new byte[]{(byte) ButtonPusherCmd.COMMAND_GET_TOKEN.ordinal()}, null);
-        /*
-        byte[] data = BtPusherService.encrypt(password);
-
-        for (int i = 0; i < data.length; i++) {
-            Log.i(TAG, "i:" + i + " " + (data[i] & 0xFF));
-        }
-
-        sendBitmap((byte) 0x00, BtPusherService.encrypt(password));
-        */
-
-        /*
-        try {
-            byte[] res = new byte[64];
-            byte[] clearText = new String("admin").getBytes();
-
-            for (int i = 0; i < clearText.length; i++) {
-                res[i] = clearText[i];
-            }
-            for (int i = clearText.length; i < 64; i++) {
-                res[i] = 0;
-            }
-            for (int i = 0; i < res.length; i++) {
-                System.out.println(res[i] & 0xFF);
-            }
-
-            byte[] data = AESCrypt.encrypt(new SecretKeySpec(key, "AES/CBC/NoPadding"), iv, res);
-
-            for (int i = 0; i < data.length; i++) {
-                Log.i(TAG, "i=" + i + " : " + "".format("0x%x", (data[i] & 0xFF)));
-            }
-
-            sendBitmap((byte) 0x00, data);
-
-
-        } catch (GeneralSecurityException e) {
-            e.printStackTrace();
-        }
-        */
-
-        /*
-        byte[] data = new byte[password.getBytes().length + 2];
-        data[0] = 0;
-        System.arraycopy(password.getBytes(), 0, data, 1, password.getBytes().length);
-        data[data.length - 1] = '\0';
-        getConn().writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, data, listener);
-        */
     }
 
     @Override

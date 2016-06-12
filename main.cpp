@@ -547,6 +547,115 @@ void sendCommandFailure(){
   RFduinoBLE.send(req,2);
 }
 
+void processEncryptedFrame(byte * check){
+
+  if (strlen(token) == 0){
+    Serial.println("no token");
+    sendPushStatus(false);
+    return;
+  }
+
+  char device_id[8];
+  Serial.print("device id : ");
+  for (int i = 0; i< 8;i++){
+    device_id[i] = check[i];
+    Serial.print((uint8_t)device_id[i]);
+    Serial.print(" ");
+  }
+  Serial.println("");
+
+  char * xor_key = is_associated(device_id);
+
+  if (xor_key!=0){
+    Serial.println("device associated, continuing ...");
+    char xored_hash[28];
+    for (int i = 8;i < 36;i++){
+      xored_hash[i-8] = check[i];
+    }
+
+    char xor_decoded[28];
+
+    Serial.println("xor decoded : ");
+    for (int j = 0 ;j  < 28;j++){
+      xor_decoded[j]=xored_hash[j]^xor_key[j];
+    }
+
+    for (int i = 0; i < 8;i++){
+      Serial.print((int)xor_decoded[i]);
+      Serial.print("=>");
+      Serial.print((int)token[i]);
+      Serial.print(" ");
+    }
+    Serial.println("");
+
+    if (memcmp(token,xor_decoded,8)==0){
+      memset(token, 0, 8);
+
+      char sent_pass[64];
+
+      for (int i = 8;i<28;i++){
+        sent_pass[i-8] = xor_decoded[i];
+      }
+      for (int i = 20;i<64;i++){
+        sent_pass[i]=0;
+      }
+
+      //decrypt current pass
+      byte pass[64];
+      byte iv[16];
+      byte cipher[64];
+      byte succ = aes.set_key (key, 256);
+
+      for (byte i = 0 ; i < 16 ; i++){
+        iv[i] = my_iv[i] ;
+      }
+      for (byte i = 0 ; i< 64;i++){
+        cipher[i] = config.pass[i];
+      }
+      //decrypt
+      succ = aes.cbc_decrypt(cipher, pass, 4, iv) ;
+
+      if (memcmp(sent_pass,pass,64)==0){
+
+        switch (cmd){
+          case COMMAND_PUSH:
+          {
+            Serial.println("push success");
+            sendPushStatus(true);
+            digitalWrite(led, HIGH);
+            s1.attach(2);
+            motor_process();
+            s1.detach();
+            digitalWrite(led, LOW);
+            break;
+          }
+          case COMMAND_SET_PASSWORD:
+          {
+            break;
+          }
+          case COMMAND_SET_KEY:
+          {
+            break;
+          }
+        }
+      }
+      else{
+        Serial.println("push failure : bad pass");
+        sendPushStatus(false);
+      } 
+    }
+    else{
+      memset(token, 0, 8);
+      Serial.println("push failure : bad token");
+      sendPushStatus(false);
+    }
+  }
+  else{
+    Serial.println("device not associated, aborting ...");
+    sendPushStatus(false);
+  }
+}
+
 void executeCmd(byte *check){
 
   for (byte ph = 0; ph < (4*16); ph++){
@@ -619,103 +728,19 @@ void executeCmd(byte *check){
     case COMMAND_PUSH:
     {
       Serial.println("processing push...");
-
-      if (strlen(token) == 0){
-        Serial.println("no token");
-        sendPushStatus(false);
-        return;
-      }
-
-      char device_id[8];
-      Serial.print("device id : ");
-      for (int i = 0; i< 8;i++){
-        device_id[i] = check[i];
-        Serial.print((uint8_t)device_id[i]);
-        Serial.print(" ");
-      }
-      Serial.println("");
-
-      char * xor_key = is_associated(device_id);
-
-      if (xor_key!=0){
-        Serial.println("device associated, continuing ...");
-        char xored_hash[28];
-        for (int i = 8;i < 36;i++){
-          xored_hash[i-8] = check[i];
-        }
-
-        char xor_decoded[28];
-
-        Serial.println("xor decoded : ");
-        for (int j = 0 ;j  < 28;j++){
-          xor_decoded[j]=xored_hash[j]^xor_key[j];
-        }
-
-        for (int i = 0; i < 8;i++){
-          Serial.print((int)xor_decoded[i]);
-          Serial.print("=>");
-          Serial.print((int)token[i]);
-          Serial.print(" ");
-        }
-        Serial.println("");
-
-        if (memcmp(token,xor_decoded,8)==0){
-          memset(token, 0, 8);
-
-          char sent_pass[64];
-
-          for (int i = 8;i<28;i++){
-            sent_pass[i-8] = xor_decoded[i];
-          }
-          for (int i = 20;i<64;i++){
-            sent_pass[i]=0;
-          }
-
-          //decrypt current pass
-          byte pass[64];
-          byte iv[16];
-          byte cipher[64];
-          byte succ = aes.set_key (key, 256);
-
-          for (byte i = 0 ; i < 16 ; i++){
-            iv[i] = my_iv[i] ;
-          }
-          for (byte i = 0 ; i< 64;i++){
-            cipher[i] = config.pass[i];
-          }
-          //decrypt
-          succ = aes.cbc_decrypt(cipher, pass, 4, iv) ;
-
-          if (memcmp(sent_pass,pass,64)==0){
-            Serial.println("push success");
-            sendPushStatus(true);
-
-            digitalWrite(led, HIGH);
-            s1.attach(2);
-            motor_process();
-            s1.detach();
-            digitalWrite(led, LOW);
-
-          }
-          else{
-            Serial.println("push failure : bad pass");
-            sendPushStatus(false);
-          } 
-        }
-        else{
-          memset(token, 0, 8);
-          Serial.println("push failure : bad token");
-          sendPushStatus(false);
-        }
-      }
-      else{
-        Serial.println("device not associated, aborting ...");
-        sendPushStatus(false);
-      }
+      processEncryptedFrame(check);
       break;
     }
     case COMMAND_SET_PASSWORD:
     {
+      Serial.println("processing set password...");
+      processEncryptedFrame(check);
+      break;
+    }
+    case COMMAND_SET_KEY:
+    {
+      Serial.println("processing set keys...");
+      processEncryptedFrame(check);
       break;
     }
     case COMMAND_ASSOCIATE_RESPONSE:
@@ -874,10 +899,6 @@ void executeCmd(byte *check){
 
       break;
     }
-    case COMMAND_SET_KEY:
-    {
-      break;
-    }
   }
 }
 
@@ -950,6 +971,27 @@ void generate_iv(byte * code, byte * iv){
   }
 }
 
+void processHeaderFrame(int cmd,char *data, int len){
+
+  Serial.println(COMMAND_STRING_ENUM[cmd]);
+
+  if (len>1){
+    state = STATE_PROCESSING;
+    data_length = data[2] + (data[1]<<8);
+    payload = (uint8_t*)malloc(data_length + 1);
+    memset(payload, 0, data_length + 1);
+
+    Serial.print("cmd: ");
+    Serial.println(cmd);
+    Serial.print("data_length: ");
+    Serial.println(data_length);
+  }
+  else{
+    Serial.print("error length error for ");
+    Serial.println(COMMAND_STRING_ENUM[cmd]);
+  }
+}
+
 void RFduinoBLE_onReceive(char *data, int len){
 
   switch (state){
@@ -1001,45 +1043,27 @@ void RFduinoBLE_onReceive(char *data, int len){
         }
         case COMMAND_ASSOCIATION_STATUS:
         {
-          Serial.println(COMMAND_STRING_ENUM[cmd]);
-          if (len>1){
-            state = STATE_PROCESSING;
-            data_length = data[2] + (data[1]<<8);
-            payload = (uint8_t*)malloc(data_length + 1);
-            memset(payload, 0, data_length + 1);
-
-            Serial.print("cmd: ");
-            Serial.println(cmd);
-            Serial.print("data_length: ");
-            Serial.println(data_length);
-          }
-          else{
-            Serial.println("error length error for COMMAND_ASSOCIATION_STATUS");
-          }
+          processHeaderFrame(cmd,data,len);
           break;
         }
         case COMMAND_PUSH:
         {
-          Serial.println(COMMAND_STRING_ENUM[cmd]);
-          if (len>1){
-            state = STATE_PROCESSING;
-            data_length = data[2] + (data[1]<<8);
-            payload = (uint8_t*)malloc(data_length + 1);
-            memset(payload, 0, data_length + 1);
-
-            Serial.print("cmd: ");
-            Serial.println(cmd);
-            Serial.print("data_length: ");
-            Serial.println(data_length);
-          }
-          else{
-            Serial.println("error length error for COMMAND_PUSH");
-          }
+          processHeaderFrame(cmd,data,len);
+          break;
+        }
+        case COMMAND_ASSOCIATE_RESPONSE:
+        {
+          processHeaderFrame(cmd,data,len);
           break;
         }
         case COMMAND_SET_PASSWORD:
         {
-          Serial.println(COMMAND_STRING_ENUM[cmd]);
+          processHeaderFrame(cmd,data,len);
+          break;
+        }
+        case COMMAND_SET_KEY:
+        {
+          processHeaderFrame(cmd,data,len);
           break;
         }
         case COMMAND_ASSOCIATE:
@@ -1104,20 +1128,6 @@ void RFduinoBLE_onReceive(char *data, int len){
 
           break;
         }
-        case COMMAND_ASSOCIATE_RESPONSE:
-        {
-          Serial.println(COMMAND_STRING_ENUM[cmd]);
-          state = STATE_PROCESSING;
-          data_length = data[2] + (data[1]<<8);
-          payload = (uint8_t*)malloc(data_length + 1);
-          memset(payload, 0, data_length + 1);
-
-          Serial.print("cmd: ");
-          Serial.println(cmd);
-          Serial.print("data_length: ");
-          Serial.println(data_length);
-          break;
-        }
         case COMMAND_RECEIVE_KEYS:
         {
           Serial.println("sending keys");
@@ -1145,10 +1155,6 @@ void RFduinoBLE_onReceive(char *data, int len){
 
             RFduinoBLE.send(buf,18);
           }
-        }
-        case COMMAND_SET_KEY:
-        {
-          Serial.println(COMMAND_STRING_ENUM[cmd]);
           break;
         }
       }

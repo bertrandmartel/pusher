@@ -37,5 +37,9 @@ public class BluetoothEvents {
     public final static String BT_EVENT_DEVICE_ASSOCIATION_SUCCESS = "com.github.akinaru.roboticbuttonpusher.bluetooth.BT_EVENT_DEVICE_ASSOCIATION_SUCCESS";
     public final static String BT_EVENT_DEVICE_ASSOCIATION_FAILURE = "com.github.akinaru.roboticbuttonpusher.bluetooth.BT_EVENT_DEVICE_ASSOCIATION_FAILURE";
     public final static String BT_EVENT_DEVICE_PUSH_SUCCESS = "com.github.akinaru.roboticbuttonpusher.bluetooth.BT_EVENT_DEVICE_PUSH_SUCCESS";
+    public final static String BT_EVENT_DEVICE_SET_PASSWORD_SUCCESS = "com.github.akinaru.roboticbuttonpusher.bluetooth.BT_EVENT_DEVICE_SET_PASSWORD_SUCCESS";
+    public final static String BT_EVENT_DEVICE_SET_KEYS_SUCCESS = "com.github.akinaru.roboticbuttonpusher.bluetooth.BT_EVENT_DEVICE_SET_KEYS_SUCCESS";
     public final static String BT_EVENT_DEVICE_PUSH_FAILURE = "com.github.akinaru.roboticbuttonpusher.bluetooth.BT_EVENT_DEVICE_PUSH_FAILURE";
+    public final static String BT_EVENT_DEVICE_SET_PASSWORD_FAILURE = "com.github.akinaru.roboticbuttonpusher.bluetooth.BT_EVENT_DEVICE_SET_PASSWORD_FAILURE";
+    public final static String BT_EVENT_DEVICE_SET_KEYS_FAILURE = "com.github.akinaru.roboticbuttonpusher.bluetooth.BT_EVENT_DEVICE_SET_KEYS_FAILURE";
 }

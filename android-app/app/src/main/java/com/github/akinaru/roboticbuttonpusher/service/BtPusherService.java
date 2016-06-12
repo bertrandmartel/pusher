@@ -34,10 +34,11 @@ import android.util.Log;
 import com.github.akinaru.roboticbuttonpusher.bluetooth.BluetoothCustomManager;
 import com.github.akinaru.roboticbuttonpusher.bluetooth.events.BluetoothEvents;
 import com.github.akinaru.roboticbuttonpusher.bluetooth.events.BluetoothObject;
-import com.github.akinaru.roboticbuttonpusher.bluetooth.listener.IPushListener;
 import com.github.akinaru.roboticbuttonpusher.bluetooth.rfduino.IRfduinoDevice;
 import com.github.akinaru.roboticbuttonpusher.constant.SharedPrefConst;
 import com.github.akinaru.roboticbuttonpusher.inter.IPushBtnListener;
+import com.github.akinaru.roboticbuttonpusher.model.BtnPusherInputTask;
+import com.github.akinaru.roboticbuttonpusher.model.BtnPusherKeysType;
 import com.github.akinaru.roboticbuttonpusher.model.ButtonPusherError;
 import com.github.akinaru.roboticbuttonpusher.model.ButtonPusherState;
 
@@ -71,6 +72,10 @@ public class BtPusherService extends Service {
 
     public static native byte[] generateiv(byte[] code);
 
+    private BtnPusherInputTask mTaskState = BtnPusherInputTask.PUSH;
+
+    private String mTempPwd;
+
     /**
      * Service binder
      */
@@ -88,7 +93,9 @@ public class BtPusherService extends Service {
 
     private static final int SCAN_TIMEOUT = 2500;
 
-    private static final int NOTIFICATION_TIMEOUT = 10000;
+    private static final int PUSH_TIMEOUT = 10000;
+
+    private static final int REQUEST_TIMEOUT = 10000;
 
     private static final int USER_CODE_TIMEOUT = 60000;
 
@@ -125,7 +132,7 @@ public class BtPusherService extends Service {
                 changeState(mState);
 
             }
-        }, NOTIFICATION_TIMEOUT, TimeUnit.MILLISECONDS);
+        }, PUSH_TIMEOUT, TimeUnit.MILLISECONDS);
 
         IRfduinoDevice device = (IRfduinoDevice) btManager.getConnectionList().get(mDeviceAdress).getDevice();
 
@@ -307,26 +314,24 @@ public class BtPusherService extends Service {
 
                         IRfduinoDevice device = (IRfduinoDevice) btManager.getConnectionList().get(mDeviceAdress).getDevice();
 
-                        mTimeoutTask = mExecutor.schedule(new Runnable() {
-                            @Override
-                            public void run() {
-                                dispatchError(ButtonPusherError.NOTIFICATION_TIMEOUT);
-                                btManager.disconnectAndRemove(mDeviceAdress);
-                                mState = ButtonPusherState.NONE;
-                                changeState(mState);
-
-                            }
-                        }, NOTIFICATION_TIMEOUT, TimeUnit.MILLISECONDS);
-
-                        device.sendPush(mPassword, new IPushListener() {
-                            @Override
-                            public void onPushFailure() {
-                            }
-
-                            @Override
-                            public void onPushSuccess() {
-                            }
-                        });
+                        switch (mTaskState) {
+                            case PUSH:
+                                setTimeoutTask(ButtonPusherError.NOTIFICATION_TIMEOUT, PUSH_TIMEOUT);
+                                device.sendPush(mPassword);
+                                break;
+                            case PASSWORD:
+                                setTimeoutTask(ButtonPusherError.SET_PASSWORD_TIMEOUT, REQUEST_TIMEOUT);
+                                device.setPassword(mPassword);
+                                break;
+                            case KEYS_DEFAULT:
+                                setTimeoutTask(ButtonPusherError.SET_KEYS_TIMEOUT, REQUEST_TIMEOUT);
+                                device.setKeys(mPassword, BtnPusherKeysType.DEFAULT);
+                                break;
+                            case KEYS_GENERATED:
+                                setTimeoutTask(ButtonPusherError.SET_KEYS_TIMEOUT, REQUEST_TIMEOUT);
+                                device.setKeys(mPassword, BtnPusherKeysType.GENERATED);
+                                break;
+                        }
                     }
                 }
             } else if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
@@ -371,11 +376,33 @@ public class BtPusherService extends Service {
                 sendFailure(ButtonPusherError.ASSOCIATION_FAILURE);
             } else if (action.equals(BluetoothEvents.BT_EVENT_DEVICE_PUSH_SUCCESS)) {
                 sendSuccess();
+            } else if (action.equals(BluetoothEvents.BT_EVENT_DEVICE_SET_PASSWORD_SUCCESS)) {
+                sendSuccess();
+            } else if (action.equals(BluetoothEvents.BT_EVENT_DEVICE_SET_KEYS_SUCCESS)) {
+                sendSuccess();
             } else if (action.equals(BluetoothEvents.BT_EVENT_DEVICE_PUSH_FAILURE)) {
                 sendFailure(ButtonPusherError.PUSH_FAILURE);
+            } else if (action.equals(BluetoothEvents.BT_EVENT_DEVICE_SET_KEYS_FAILURE)) {
+                sendFailure(ButtonPusherError.SET_KEYS_FAILURE);
+            } else if (action.equals(BluetoothEvents.BT_EVENT_DEVICE_SET_PASSWORD_FAILURE)) {
+                sendFailure(ButtonPusherError.SET_PASSWORD_FAILURE);
             }
         }
     };
+
+    private void setTimeoutTask(final ButtonPusherError error, int timeout) {
+
+        mTimeoutTask = mExecutor.schedule(new Runnable() {
+            @Override
+            public void run() {
+                dispatchError(error);
+                btManager.disconnectAndRemove(mDeviceAdress);
+                mState = ButtonPusherState.NONE;
+                changeState(mState);
+
+            }
+        }, timeout, TimeUnit.MILLISECONDS);
+    }
 
     private void sendSuccess() {
         if (mTimeoutTask != null) {
@@ -490,6 +517,11 @@ public class BtPusherService extends Service {
     };
 
     public void startPushTask() {
+        mTaskState = BtnPusherInputTask.PUSH;
+        chainTasks();
+    }
+
+    private void chainTasks() {
 
         if (mState == ButtonPusherState.NONE) {
 
@@ -524,6 +556,19 @@ public class BtPusherService extends Service {
     }
 
     public void uploadPassword(String pass) {
+        mTaskState = BtnPusherInputTask.PASSWORD;
+        mTempPwd = pass;
+        chainTasks();
+    }
+
+    public void uploadDefaultKeys() {
+        mTaskState = BtnPusherInputTask.KEYS_DEFAULT;
+        chainTasks();
+    }
+
+    public void uploadGeneratedKeys() {
+        mTaskState = BtnPusherInputTask.KEYS_GENERATED;
+        chainTasks();
     }
 
 }
