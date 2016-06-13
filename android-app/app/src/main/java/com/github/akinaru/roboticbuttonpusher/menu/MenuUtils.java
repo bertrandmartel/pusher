@@ -30,6 +30,7 @@ import com.github.akinaru.roboticbuttonpusher.R;
 import com.github.akinaru.roboticbuttonpusher.dialog.AboutDialog;
 import com.github.akinaru.roboticbuttonpusher.dialog.DeviceNameDialog;
 import com.github.akinaru.roboticbuttonpusher.dialog.DevicePasswordDialog;
+import com.github.akinaru.roboticbuttonpusher.dialog.KeysDialog;
 import com.github.akinaru.roboticbuttonpusher.dialog.OpenSourceItemsDialog;
 import com.github.akinaru.roboticbuttonpusher.inter.IButtonPusher;
 
@@ -64,8 +65,15 @@ public class MenuUtils {
                 }
                 break;
             }
+            case R.id.keys_item: {
+                if (buttonPusher != null) {
+                    KeysDialog dialog = new KeysDialog(buttonPusher);
+                    dialog.show();
+                }
+                break;
+            }
             case R.id.debug_mode_item: {
-                
+
                 CharSequence[] array = {"enabled", "disabled"};
 
                 int indexCheck = buttonPusher.getDebugMode() ? 0 : 1;

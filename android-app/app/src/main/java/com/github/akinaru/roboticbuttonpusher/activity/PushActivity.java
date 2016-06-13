@@ -494,6 +494,16 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
         mSingleton.sendAssociationCodeFail();
     }
 
+    @Override
+    public void generateNewAesKey() {
+        mSingleton.generateNewAesKey();
+    }
+
+    @Override
+    public void generateDefaultAesKey() {
+        mSingleton.generateDefaultAesKey();
+    }
+
     private void clearReplaceDebugTv(final String text) {
         runOnUiThread(new Runnable() {
             @Override

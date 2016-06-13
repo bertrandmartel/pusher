@@ -46,13 +46,13 @@ uint16_t sending_index = 0;
 
 AES aes ;
 
-byte key[] = 
+byte default_key[] = 
 {
   0xF2, 0x1E, 0x07, 0x8C, 0x96, 0x99, 0x5E, 0xF7, 0xED, 0xF0, 0x91, 0x84, 0x06, 0x06, 0xF3, 0x94,
   0x59, 0x90, 0x66, 0x63, 0x81, 0xE9, 0x14, 0x3E, 0x7B, 0x02, 0x7E, 0x08, 0xB6, 0xC7, 0x06, 0x26
 } ;
 
-byte my_iv[] = 
+byte default_iv[] = 
 {
   0xC3, 0x78, 0x7E, 0x76, 0x31, 0x6D, 0x6B, 0x5B, 0xB8, 0x8E, 0xDA, 0x03, 0x82, 0xEB, 0x57, 0xBD
 } ;
@@ -105,6 +105,8 @@ struct data_t
   uint16_t lfsr;
   uint16_t flag;
   uint8_t device_num;
+  byte key[32];
+  byte iv[16];
 };
 
 data_t config = { 
@@ -150,7 +152,7 @@ void save_config(bool default_config){
 
     if (default_config){
 
-      byte succ = aes.set_key (key, 256);
+      byte succ = aes.set_key (default_key, 256);
 
       int blocks = 4;
       byte cipher [4*N_BLOCK] ;
@@ -162,7 +164,7 @@ void save_config(bool default_config){
       else {
 
         for (byte i = 0 ; i < N_BLOCK ; i++){
-          iv[i] = my_iv[i] ;
+          iv[i] = default_iv[i] ;
         }
         succ = aes.cbc_encrypt(default_pass, cipher, blocks, iv) ;
       }
@@ -179,6 +181,13 @@ void save_config(bool default_config){
       config.lfsr = LFSR_DEFAULT_VALUE;
       config.flag = 1;
       config.device_num=0;
+
+      for (int i  =0;i< 32;i++){
+        config.key[i]=default_key[i];
+      }
+      for (int i  =0;i< 16;i++){
+        config.iv[i]=default_iv[i];
+      }
     }
     
     while (!RFduinoBLE.radioActive);
@@ -254,6 +263,7 @@ void load_fake_host_config(){
     Serial.println(device_ptr[i].xor_key);
   }
 }
+
 void print_all_config(){
   
   uint32_t *save_ptr = device_config;
@@ -438,13 +448,13 @@ void sendCommandStatus(int cmd, bool status){
   if (status){
     status_d=0;
   }
-  sprintf(req, "%d:%d", cmd,status_d);
-  RFduinoBLE.send(req,3);
+  sprintf(req, "%c:%c", cmd,status_d);
+  RFduinoBLE.send(req,10);
 }
 
 void sendCommandFailure(){
   char req[1]={0};
-  sprintf(req, "%d", COMMAND_FAILURE);
+  sprintf(req, "%c", COMMAND_FAILURE);
   Serial.println("send association failure");
   RFduinoBLE.send(req,2);
 }
@@ -633,25 +643,30 @@ void processEncryptedFrame(byte * check){
     Serial.println("");
 
     if (memcmp(token,xor_decoded,8)==0){
+
       memset(token, 0, 8);
 
       char sent_pass[64];
 
+      Serial.println("sent_pass :");
       for (int i = 8;i<28;i++){
         sent_pass[i-8] = xor_decoded[i];
+        Serial.print(sent_pass[i-8]);
+        Serial.print(" ");
       }
       for (int i = 20;i<64;i++){
         sent_pass[i]=0;
       }
+      Serial.println("");
 
       //decrypt current pass
       byte pass[64];
       byte iv[16];
       byte cipher[64];
-      byte succ = aes.set_key (key, 256);
+      byte succ = aes.set_key (config.key, 256);
 
       for (byte i = 0 ; i < 16 ; i++){
-        iv[i] = my_iv[i] ;
+        iv[i] = config.iv[i] ;
       }
       for (byte i = 0 ; i< 64;i++){
         cipher[i] = config.pass[i];
@@ -679,7 +694,7 @@ void processEncryptedFrame(byte * check){
             Serial.println("set password request success");
             use_local_keys= false;
             char buf[3]={0};
-            sprintf(buf, "%d:%d", COMMAND_SET_PASSWORD, 2);
+            sprintf(buf, "%c:%c", COMMAND_SET_PASSWORD, 2);
             RFduinoBLE.send(buf,3);
             break;
           }
@@ -689,7 +704,7 @@ void processEncryptedFrame(byte * check){
             Serial.println("set keys request success");
             use_local_keys= false;
             char buf[3]={0};
-            sprintf(buf, "%d:%d", COMMAND_SET_KEY, 2);
+            sprintf(buf, "%c:%c", COMMAND_SET_KEY, 2);
             RFduinoBLE.send(buf,3);
             break;
           }
@@ -822,13 +837,12 @@ void executeCmd(byte *check){
 
         Serial.println("device associated, continuing ...");
         
-        char xored_hash[28];
-        for (int i = 8;i < 36;i++){
+        char xored_hash[56];
+        for (int i = 8;i < 64;i++){
           xored_hash[i-8] = check[i];
         }
 
         char xor_decoded[28];
-
         Serial.println("xor decoded : ");
         for (int j = 0 ;j  < 28;j++){
           xor_decoded[j]=xored_hash[j]^xor_key[j];
@@ -846,7 +860,7 @@ void executeCmd(byte *check){
 
           memset(token, 0, 8);
 
-          byte succ = aes.set_key (key, 256);
+          byte succ = aes.set_key (config.key, 256);
 
           int blocks = 4;
           byte cipher [4*N_BLOCK] ;
@@ -866,10 +880,11 @@ void executeCmd(byte *check){
           else {
 
             for (byte i = 0 ; i < N_BLOCK ; i++){
-              iv[i] = my_iv[i] ;
+              iv[i] = config.iv[i] ;
             }
             succ = aes.cbc_encrypt(input, cipher, blocks, iv) ;
           }
+
 
           for (byte i = 0; i < (4*N_BLOCK); i++){
             config.pass[i]=cipher[i];
@@ -901,6 +916,106 @@ void executeCmd(byte *check){
     }
     case COMMAND_SET_KEYS_RESPONSE:
     {
+      Serial.println("processing set keys");
+
+      if (strlen(token) == 0){
+        Serial.println("no token");
+        sendCommandStatus(COMMAND_PUSH,false);
+        return;
+      }
+
+      char device_id[8];
+      Serial.print("device id : ");
+      for (int i = 0; i< 8;i++){
+        device_id[i] = check[i];
+        Serial.print((uint8_t)device_id[i]);
+        Serial.print(" ");
+      }
+      Serial.println("");
+
+      char * xor_key = is_associated(device_id);
+
+      if (xor_key!=0){
+
+        Serial.println("device associated, continuing ...");
+        
+        char xored_hash[64];
+        for (int i = 8;i < 64;i++){
+          xored_hash[i-8] = check[i];
+        }
+
+        char xor_decoded[64];
+
+        Serial.println("xor decoded : ");
+        for (int j = 0 ;j  < 32;j++){
+          xor_decoded[j]=xored_hash[j]^xor_key[j];
+        }
+        for (int j = 32 ;j  < 64;j++){
+          xor_decoded[j]=xored_hash[j]^xor_key[j-32];
+        }
+
+        for (int i = 0; i < 8;i++){
+          Serial.print((int)xor_decoded[i]);
+          Serial.print("=>");
+          Serial.print((int)token[i]);
+          Serial.print(" ");
+        }
+        Serial.println("");
+
+        if (memcmp(token,xor_decoded,8)==0){
+
+          //decrypt current pass
+          byte pass[64];
+          byte iv[16];
+          byte cipher[64];
+          byte succ = aes.set_key (config.key, 256);
+
+          for (byte i = 0 ; i < 16 ; i++){
+            iv[i] = config.iv[i] ;
+          }
+          for (byte i = 0 ; i< 64;i++){
+            cipher[i] = config.pass[i];
+          }
+          //decrypt
+          succ = aes.cbc_decrypt(cipher, pass, 4, iv) ;
+
+          memset(token, 0, 8);
+          Serial.println("SET KEYS OK");
+
+          for (int i = 0; i < 32;i++){
+            config.key[i]=xor_decoded[i+8];
+          }
+
+          for (int i = 0; i < 16;i++){
+            config.iv[i]=xor_decoded[i+8+32];
+          }
+
+          succ = aes.set_key (config.key, 256);
+
+          for (byte i = 0 ; i < N_BLOCK ; i++){
+            iv[i] = config.iv[i] ;
+          }
+          succ = aes.cbc_encrypt(pass, cipher, 4, iv) ;
+
+          for (byte i = 0; i < (4*N_BLOCK); i++){
+            config.pass[i]=cipher[i];
+          }
+
+          Serial.println("set key success");
+          Serial.println(cmd);
+          sendCommandStatus(cmd,true);
+        }
+        else{
+          memset(token, 0, 8);
+          Serial.println("cmd failure : bad token");
+          sendCommandStatus(cmd,false);
+        }
+      }
+      else{
+        Serial.println("device not associated, aborting ...");
+        sendCommandStatus(cmd,false);
+      }
+
       break;
     }
     case COMMAND_ASSOCIATE_RESPONSE:
@@ -950,13 +1065,13 @@ void executeCmd(byte *check){
         byte iv_data[64];
 
         for (int i = 0; i < 32;i++){
-          key_data[i] = key[i];
+          key_data[i] = config.key[i];
         }
         for (int i = 32 ; i < 64;i++){
           key_data[i]= 0;
         }
         for (int i = 0; i < 16;i++){
-          iv_data[i] = my_iv[i];
+          iv_data[i] = config.iv[i];
         }
         for (int i = 16; i < 64;i++){
           iv_data[i] = 0;
@@ -1044,7 +1159,7 @@ void executeCmd(byte *check){
         Serial.println(data_length);
 
         char req[10]={0};
-        sprintf(req, "%d:%d:%d", COMMAND_ASSOCIATE_RESPONSE, STATE_SENDING,data_length);
+        sprintf(req, "%c:%c:%d", COMMAND_ASSOCIATE_RESPONSE, STATE_SENDING,data_length);
         Serial.print("sending : ");
         Serial.println(req);
         RFduinoBLE.send(req,10);
@@ -1114,7 +1229,7 @@ void RFduinoBLE_onReceive(char *data, int len){
           char tokenStr[16];
           sprintf(tokenStr, "%04x%04x%04x%04x", lfsr1, lfsr2,lfsr3,lfsr4);
           char buf[50]={0};
-          sprintf(buf, "%d:%s", COMMAND_GET_TOKEN, tokenStr);
+          sprintf(buf, "%c:%s", COMMAND_GET_TOKEN, tokenStr);
 
           token[0]=((lfsr1 & 0xFF00)>>8);
           token[1]=((lfsr1 & 0x00FF)>>0);
@@ -1175,7 +1290,7 @@ void RFduinoBLE_onReceive(char *data, int len){
           use_local_keys= false;
 
           char buf[3]={0};
-          sprintf(buf, "%d:%d", COMMAND_ASSOCIATE, 2);
+          sprintf(buf, "%c:%c", COMMAND_ASSOCIATE, 2);
           RFduinoBLE.send(buf,3);
 
           break;
@@ -1259,9 +1374,9 @@ void RFduinoBLE_onReceive(char *data, int len){
         if (use_local_keys){
 
           for (byte i = 0 ; i < 16 ; i++){
-            iv[i] = my_iv[i] ;
+            iv[i] = config.iv[i] ;
           }
-          succ = aes.set_key (key, 256);
+          succ = aes.set_key (config.key, 256);
         }
         else{
           
