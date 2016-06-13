@@ -30,6 +30,7 @@
     <string name="menu_device_name">Device name : </string>
     <string name="menu_password">Password</string>
     <string name="menu_keys">Change encryption key</string>
+    <string name="menu_disassociate">disassociate device</string>
     <string name="scan_log">Scanning for device</string>
     <string name="connect_log">Connecting to device</string>
     <string name="send_cmd_log">Sending command ...</string>

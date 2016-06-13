@@ -162,6 +162,11 @@ public class BtPusherService extends Service {
         uploadDefaultKeys();
     }
 
+    public void disassociate() {
+        mTaskState = BtnPusherInputTask.DISASSOCIATE;
+        chainTasks();
+    }
+
     /*
      * LocalBInder that render public getService() for public access
      */
@@ -338,6 +343,10 @@ public class BtPusherService extends Service {
                                 setTimeoutTask(ButtonPusherError.SET_KEYS_TIMEOUT, REQUEST_TIMEOUT);
                                 device.setKeys(mPassword, BtnPusherKeysType.GENERATED);
                                 break;
+                            case DISASSOCIATE:
+                                setTimeoutTask(ButtonPusherError.DISASSOCIATE_TIMEOUT, REQUEST_TIMEOUT);
+                                device.disassociate();
+                                break;
                         }
                     }
                 }
@@ -387,12 +396,16 @@ public class BtPusherService extends Service {
                 sendSuccess();
             } else if (action.equals(BluetoothEvents.BT_EVENT_DEVICE_SET_KEYS_SUCCESS)) {
                 sendSuccess();
+            } else if (action.equals(BluetoothEvents.BT_EVENT_DEVICE_DISASSOCIATE_SUCCESS)) {
+                sendSuccess();
             } else if (action.equals(BluetoothEvents.BT_EVENT_DEVICE_PUSH_FAILURE)) {
                 sendFailure(ButtonPusherError.PUSH_FAILURE);
             } else if (action.equals(BluetoothEvents.BT_EVENT_DEVICE_SET_KEYS_FAILURE)) {
                 sendFailure(ButtonPusherError.SET_KEYS_FAILURE);
             } else if (action.equals(BluetoothEvents.BT_EVENT_DEVICE_SET_PASSWORD_FAILURE)) {
                 sendFailure(ButtonPusherError.SET_PASSWORD_FAILURE);
+            } else if (action.equals(BluetoothEvents.BT_EVENT_DEVICE_DISASSOCIATE_FAILURE)) {
+                sendFailure(ButtonPusherError.DISASSOCIATE_FAILURE);
             }
         }
     };
@@ -481,6 +494,8 @@ public class BtPusherService extends Service {
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_SET_PASSWORD_FAILURE);
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_SET_KEYS_FAILURE);
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_SET_KEYS_SUCCESS);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_DISASSOCIATE_SUCCESS);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_DISASSOCIATE_FAILURE);
         return intentFilter;
     }
 

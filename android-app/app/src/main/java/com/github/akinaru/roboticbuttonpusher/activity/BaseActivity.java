@@ -106,6 +106,8 @@ public abstract class BaseActivity extends AppCompatActivity implements IButtonP
 
     protected boolean mAssociated = false;
 
+    protected MenuItem mDisassociateMenuItem;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -130,6 +132,8 @@ public abstract class BaseActivity extends AppCompatActivity implements IButtonP
 
         // Setup drawer view
         setupDrawerContent(nvDrawer);
+
+        mDisassociateMenuItem = nvDrawer.getMenu().findItem(R.id.exit_item);
 
         //setup bluetooth
         if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
@@ -227,6 +231,7 @@ public abstract class BaseActivity extends AppCompatActivity implements IButtonP
                 }
             });
         }
+
         return super.onCreateOptionsMenu(menu);
     }
 

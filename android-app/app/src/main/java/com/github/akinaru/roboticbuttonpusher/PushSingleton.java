@@ -178,4 +178,8 @@ public class PushSingleton {
     public void generateDefaultAesKey() {
         mService.generateDefaultAesKey();
     }
+
+    public void disassociate() {
+        mService.disassociate();
+    }
 }

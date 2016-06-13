@@ -30,4 +30,6 @@ public interface IButtonPusher {
     void generateNewAesKey();
 
     void generateDefaultAesKey();
+
+    void disassociate();
 }
