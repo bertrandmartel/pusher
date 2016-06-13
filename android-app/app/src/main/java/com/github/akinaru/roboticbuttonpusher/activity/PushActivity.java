@@ -478,9 +478,9 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
     }
 
     @Override
-    public void uploadPassword(String pass) {
-        if (pass != null && !pass.equals("")) {
-            mSingleton.uploadPassword(pass);
+    public void uploadPassword(String oldPass) {
+        if (oldPass != null && !oldPass.equals("")) {
+            mSingleton.uploadPassword(oldPass);
         }
     }
 

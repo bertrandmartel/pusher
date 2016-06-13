@@ -3,11 +3,11 @@ package com.github.akinaru.roboticbuttonpusher.inter;
 /**
  * Created by akinaru on 09/06/16.
  */
-public interface IAssociateListener {
+public interface IInteractiveListener {
 
-    void onAssociationSuccess();
+    void onSuccess();
 
-    void onAssociationFailure();
+    void onFailure();
 
     void onUserActionRequired();
 
