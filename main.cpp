@@ -70,6 +70,7 @@ byte external_iv[16];
 uint8_t* payload;
 uint8_t* response;
 uint8_t offset = 0;
+uint16_t lfsr;
 
 #define CONFIG_STORAGE 251
 #define DEVICE_CONFIG_STORAGE 250
@@ -102,7 +103,6 @@ uint16_t myRandom16(){
 struct data_t
 {
   char pass[4*N_BLOCK];
-  uint16_t lfsr;
   uint16_t flag;
   uint8_t device_num;
   byte key[32];
@@ -129,8 +129,8 @@ uint16_t bit;
 
 uint16_t random()
 {
-  bit  = ((config.lfsr >> 0) ^ (config.lfsr >> 2) ^ (config.lfsr >> 3) ^ (config.lfsr >> 5) ) & 1;
-  return config.lfsr =  (config.lfsr >> 1) | (bit << 15);
+  bit  = ((lfsr >> 0) ^ (lfsr >> 2) ^ (lfsr >> 3) ^ (lfsr >> 5) ) & 1;
+  return lfsr =  (lfsr >> 1) | (bit << 15);
 }
 
 void write_host_config(device *item){
@@ -178,7 +178,6 @@ void save_config(bool default_config){
       }
       Serial.println();
 
-      config.lfsr = LFSR_DEFAULT_VALUE;
       config.flag = 1;
       config.device_num=0;
 
@@ -369,15 +368,12 @@ void write(){
     
     config.flag=1;
     config.device_num=in_flash->device_num;
-    config.lfsr=in_flash->lfsr;
 
     Serial.print("encrypted password : ");
     for (byte i = 0; i < (4*N_BLOCK); i++){
       Serial.print ( config.pass[i]>>4, HEX) ; Serial.print ( config.pass[i]&15, HEX) ; Serial.print (" ") ;
     }
     Serial.println();
-    Serial.print("lfsr : ");
-    Serial.println(config.lfsr);
   }
 
   print_all_config();
@@ -387,6 +383,8 @@ void setup() {
 
   Serial.begin(9600);
   
+  lfsr = myRandom16();
+
   pinMode(led, OUTPUT);
 
   pinMode(button, INPUT);
