@@ -152,8 +152,7 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
                         if (!mAssociated) {
                             button.setVisibility(View.VISIBLE);
                             button.startAnimation(mAnimationDefaultScaleUp);
-                        }
-                        else{
+                        } else {
                             buttonAssociated.setVisibility(View.VISIBLE);
                             buttonAssociated.startAnimation(mAnimationDefaultScaleUp);
                         }
@@ -178,6 +177,12 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
         if (mAssociated) {
             findViewById(R.id.fab).setVisibility(View.GONE);
             findViewById(R.id.fab_associated).setVisibility(View.VISIBLE);
+        }
+
+        if (mDisassociateMenuItem != null) {
+            if (!mAssociated) {
+                mDisassociateMenuItem.setVisible(false);
+            }
         }
 
         button = (FloatingActionButton) findViewById(R.id.fab);
@@ -371,6 +376,9 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+                        if (mDisassociateMenuItem != null) {
+                            mDisassociateMenuItem.setVisible(true);
+                        }
                         mAssociated = true;
                         SharedPreferences.Editor editor = sharedPref.edit();
                         editor.putBoolean(SharedPrefConst.ASSOCIATED_STATUS, mAssociated);
@@ -384,6 +392,78 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
                     @Override
                     public void run() {
                         Toast.makeText(PushActivity.this, "association failure", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } else if (BluetoothEvents.BT_EVENT_DEVICE_SET_KEYS_SUCCESS.equals(action)) {
+                Log.v(TAG, "set keys success");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mAssociated = false;
+                        findViewById(R.id.fab).setVisibility(View.VISIBLE);
+                        findViewById(R.id.fab_associated).setVisibility(View.GONE);
+                        SharedPreferences.Editor editor = sharedPref.edit();
+                        editor.putBoolean(SharedPrefConst.ASSOCIATED_STATUS, mAssociated);
+                        editor.commit();
+                        Toast.makeText(PushActivity.this, "set key success", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } else if (BluetoothEvents.BT_EVENT_DEVICE_SET_KEYS_FAILURE.equals(action)) {
+                Log.v(TAG, "set keys failure");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(PushActivity.this, "set key failure", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } else if (BluetoothEvents.BT_EVENT_DEVICE_SET_PASSWORD_SUCCESS.equals(action)) {
+                Log.v(TAG, "set password success");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(PushActivity.this, "set password success", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } else if (BluetoothEvents.BT_EVENT_DEVICE_SET_PASSWORD_FAILURE.equals(action)) {
+                Log.v(TAG, "set password failure");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(PushActivity.this, "set password failure", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } else if (BluetoothEvents.BT_EVENT_DEVICE_DISASSOCIATE_FAILURE.equals(action)) {
+                Log.v(TAG, "deassociate failure");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (mDisassociateMenuItem != null) {
+                            mDisassociateMenuItem.setVisible(false);
+                        }
+                        mAssociated = false;
+                        findViewById(R.id.fab).setVisibility(View.VISIBLE);
+                        findViewById(R.id.fab_associated).setVisibility(View.GONE);
+                        SharedPreferences.Editor editor = sharedPref.edit();
+                        editor.putBoolean(SharedPrefConst.ASSOCIATED_STATUS, mAssociated);
+                        editor.commit();
+                        Toast.makeText(PushActivity.this, "disassociation failure", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } else if (BluetoothEvents.BT_EVENT_DEVICE_DISASSOCIATE_SUCCESS.equals(action)) {
+                Log.v(TAG, "disassociate success");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (mDisassociateMenuItem != null) {
+                            mDisassociateMenuItem.setVisible(false);
+                        }
+                        mAssociated = false;
+                        findViewById(R.id.fab).setVisibility(View.VISIBLE);
+                        findViewById(R.id.fab_associated).setVisibility(View.GONE);
+                        SharedPreferences.Editor editor = sharedPref.edit();
+                        editor.putBoolean(SharedPrefConst.ASSOCIATED_STATUS, mAssociated);
+                        editor.commit();
+                        Toast.makeText(PushActivity.this, "disassociation success", Toast.LENGTH_SHORT).show();
                     }
                 });
             }
@@ -504,6 +584,11 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
         mSingleton.generateDefaultAesKey();
     }
 
+    @Override
+    public void disassociate() {
+        mSingleton.disassociate();
+    }
+
     private void clearReplaceDebugTv(final String text) {
         runOnUiThread(new Runnable() {
             @Override
@@ -531,6 +616,12 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_DISCONNECTED);
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_SUCCESS);
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_FAILURE);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_SET_KEYS_SUCCESS);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_SET_KEYS_FAILURE);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_SET_PASSWORD_SUCCESS);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_SET_PASSWORD_FAILURE);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_DISASSOCIATE_FAILURE);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_DISASSOCIATE_SUCCESS);
         return intentFilter;
     }
 }

@@ -35,6 +35,7 @@ import com.github.akinaru.roboticbuttonpusher.bluetooth.listener.IPushListener;
 import com.github.akinaru.roboticbuttonpusher.constant.DefaultKeys;
 import com.github.akinaru.roboticbuttonpusher.constant.SharedPrefConst;
 import com.github.akinaru.roboticbuttonpusher.inter.IAssociationStatusListener;
+import com.github.akinaru.roboticbuttonpusher.inter.IDeassociateListener;
 import com.github.akinaru.roboticbuttonpusher.inter.IInteractiveListener;
 import com.github.akinaru.roboticbuttonpusher.inter.ITokenListener;
 import com.github.akinaru.roboticbuttonpusher.model.BtnPusherInputTask;
@@ -92,6 +93,7 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
     private IInteractiveListener mPasswordListener;
     private IInteractiveListener mKeyListener;
     private IPushListener mPushListener;
+    private IDeassociateListener mDeassociateListener;
 
     private byte[] mXorKey;
     private byte[] mAesKey;
@@ -211,6 +213,20 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
                             case COMMAND_FAILURE:
                                 if (charac.getValue().length > 0) {
                                     Log.e(TAG, "command failure");
+                                }
+                                break;
+                            case COMMAND_DEASSOCIATE:
+                                if (charac.getValue().length > 2) {
+
+                                    if (((charac.getValue()[2] & 0xFF)) == 1) {
+                                        if (mDeassociateListener != null) {
+                                            mDeassociateListener.onFailure();
+                                        }
+                                    } else if (((charac.getValue()[2] & 0xFF)) == 0) {
+                                        if (mDeassociateListener != null) {
+                                            mDeassociateListener.onSuccess();
+                                        }
+                                    }
                                 }
                                 break;
                             case COMMAND_SET_PASSWORD:
@@ -545,6 +561,11 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
     }
 
     @Override
+    public void disassociate() {
+        sendCommand(BtnPusherInputTask.DISASSOCIATE);
+    }
+
+    @Override
     public void setPassword(String oldPass) {
         oldPassword = oldPass;
         sendCommand(BtnPusherInputTask.PASSWORD);
@@ -734,6 +755,21 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
                         Log.i(TAG, "token received sending association status request");
 
                         switch (task) {
+                            case DISASSOCIATE:
+                                mDeassociateListener = new IDeassociateListener() {
+                                    @Override
+                                    public void onSuccess() {
+                                        Log.i(TAG, "deassociate success");
+                                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_DISASSOCIATE_SUCCESS, new ArrayList<String>());
+                                    }
+
+                                    @Override
+                                    public void onFailure() {
+                                        Log.i(TAG, "deassociate failure");
+                                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_DISASSOCIATE_FAILURE, new ArrayList<String>());
+                                    }
+                                };
+                                break;
                             case PASSWORD:
                                 mPasswordListener = new IInteractiveListener() {
                                     @Override
@@ -831,6 +867,10 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
                                         Log.i(TAG, "set key generated failure");
                                         conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_SET_KEYS_FAILURE, new ArrayList<String>());
                                         break;
+                                    case DISASSOCIATE:
+                                        Log.i(TAG, "disassociate failure");
+                                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_DISASSOCIATE_FAILURE, new ArrayList<String>());
+                                        break;
                                 }
                             }
 
@@ -854,6 +894,10 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
                                         Log.i(TAG, "set key generated success");
                                         conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_SET_KEYS_SUCCESS, new ArrayList<String>());
                                         break;
+                                    case DISASSOCIATE:
+                                        Log.i(TAG, "disassociate success");
+                                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_DISASSOCIATE_SUCCESS, new ArrayList<String>());
+                                        break;
                                 }
                             }
                         };
@@ -871,6 +915,9 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
                                 break;
                             case KEYS_GENERATED:
                                 sendBitmap((byte) ButtonPusherCmd.COMMAND_SET_KEY.ordinal(), buildPushRequest(mToken, mPassword.getBytes()));
+                                break;
+                            case DISASSOCIATE:
+                                sendBitmap((byte) ButtonPusherCmd.COMMAND_DEASSOCIATE.ordinal(), buildPushRequest(mToken, mPassword.getBytes()));
                                 break;
                         }
                     }
@@ -937,6 +984,10 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
                     case KEYS_GENERATED:
                         Log.e(TAG, "set keys generated failure");
                         conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_SET_KEYS_FAILURE, new ArrayList<String>());
+                        break;
+                    case DISASSOCIATE:
+                        Log.e(TAG, "disassociate failure");
+                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_DISASSOCIATE_FAILURE, new ArrayList<String>());
                         break;
                     default:
                         break;
@@ -1026,9 +1077,6 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
                             @Override
                             public void onUserActionCommitted(String code) {
-
-                                Log.i(TAG, "user action committed : " + code);
-
                                 Log.i(TAG, "user action committed : " + code);
                                 sendUserCommittedResponse(code, token, ButtonPusherCmd.COMMAND_ASSOCIATE_RESPONSE);
                             }

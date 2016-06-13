@@ -58,6 +58,10 @@ public class MenuUtils {
                 }
                 break;
             }
+            case R.id.exit_item: {
+                buttonPusher.disassociate();
+                break;
+            }
             case R.id.password_item: {
                 if (buttonPusher != null) {
                     DevicePasswordDialog dialog = new DevicePasswordDialog(buttonPusher);

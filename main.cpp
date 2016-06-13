@@ -317,9 +317,29 @@ char* is_associated(char * device_id){
   return 0;
 }
 
+void remove_device(char * device_id){
+
+  int index = 0;
+
+  for (int i = 0; (i< MAX_ASSOCIATED_DEVICE);i++){
+
+    if (memcmp(device_ptr[i].device_id,device_id,8)==0){
+      index=i;
+    }
+  }
+  if (index!=MAX_ASSOCIATED_DEVICE){
+    for (int i = index;i<MAX_ASSOCIATED_DEVICE-1;i++){
+      strcpy(device_ptr[i].device_id, device_ptr[i+1].device_id);
+      strcpy(device_ptr[i].xor_key  , device_ptr[i+1].xor_key);
+    }
+  }
+  config.device_num--;
+  add_device_pending=true;
+  print_all_config();
+}
+
 void write(){
-  
-  
+ 
   in_flash = (data_t*)ADDRESS_OF_PAGE(CONFIG_STORAGE);
 
   if (in_flash->flag != 0){
@@ -708,6 +728,14 @@ void processEncryptedFrame(byte * check){
             RFduinoBLE.send(buf,3);
             break;
           }
+          case COMMAND_DISASSOCIATION:
+          {
+            Serial.println("disassociation success");
+            remove_device(device_id);
+            char buf[3]={0};
+            sprintf(buf, "%c:%c", COMMAND_DISASSOCIATION, 0);
+            RFduinoBLE.send(buf,3);
+          }
         }
       }
       else{
@@ -811,6 +839,12 @@ void executeCmd(byte *check){
     case COMMAND_SET_KEY:
     {
       Serial.println("processing set keys...");
+      processEncryptedFrame(check);
+      break;
+    }
+    case COMMAND_DISASSOCIATION:
+    {
+      Serial.println("processing disassociation...");
       processEncryptedFrame(check);
       break;
     }
@@ -1277,6 +1311,11 @@ void RFduinoBLE_onReceive(char *data, int len){
           break;
         }
         case COMMAND_SET_KEY:
+        {
+          processHeaderFrame(cmd,data,len);
+          break;
+        }
+        case COMMAND_DISASSOCIATION:
         {
           processHeaderFrame(cmd,data,len);
           break;

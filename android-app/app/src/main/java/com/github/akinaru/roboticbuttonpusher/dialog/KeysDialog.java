@@ -47,22 +47,12 @@ public class KeysDialog extends AlertDialog {
         setTitle(R.string.rfduino_device_keys);
 
         Button generate_key_btn = (Button) dialoglayout.findViewById(R.id.generate_key_btn);
-        Button default_key_btn = (Button) dialoglayout.findViewById(R.id.default_key_btn);
 
         generate_key_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Log.i(TAG, "generate key");
                 activity.generateNewAesKey();
-                cancel();
-            }
-        });
-
-        default_key_btn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Log.i(TAG, "default key");
-                activity.generateDefaultAesKey();
                 cancel();
             }
         });

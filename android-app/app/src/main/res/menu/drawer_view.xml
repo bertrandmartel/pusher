@@ -19,6 +19,11 @@
             android:title="@string/menu_keys" />
 
         <item
+            android:id="@+id/exit_item"
+            android:icon="@drawable/ic_action_exit"
+            android:title="@string/menu_disassociate" />
+
+        <item
             android:id="@+id/debug_mode_item"
             android:icon="@drawable/ic_settings"
             android:title="@string/debug_mode_title" />
