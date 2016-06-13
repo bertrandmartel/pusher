@@ -154,6 +154,14 @@ public class BtPusherService extends Service {
         changeState(mState);
     }
 
+    public void generateNewAesKey() {
+        uploadGeneratedKeys();
+    }
+
+    public void generateDefaultAesKey() {
+        uploadDefaultKeys();
+    }
+
     /*
      * LocalBInder that render public getService() for public access
      */
@@ -171,7 +179,7 @@ public class BtPusherService extends Service {
 
     @Override
     public void onCreate() {
-
+        super.onCreate();
         Log.i(TAG, "service create");
 
         //initiate bluetooth manager object used to manage all Android Bluetooth API
@@ -186,7 +194,6 @@ public class BtPusherService extends Service {
         SharedPreferences pref = getSharedPreferences(SharedPrefConst.PREFERENCES, Context.MODE_PRIVATE);
         mDeviceName = pref.getString(SharedPrefConst.DEVICE_NAME_FIELD, SharedPrefConst.DEFAULT_DEVICE_NAME);
         mPassword = pref.getString(SharedPrefConst.DEVICE_PASSWORD_FIELD, SharedPrefConst.DEFAULT_PASSWORD);
-
     }
 
     @Override
@@ -561,6 +568,7 @@ public class BtPusherService extends Service {
 
     public void uploadPassword(String oldPass) {
         this.oldPwd = oldPass;
+        Log.i(TAG, "old pass : " + oldPass);
         mTaskState = BtnPusherInputTask.PASSWORD;
         chainTasks();
     }

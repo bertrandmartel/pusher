@@ -26,4 +26,8 @@ public interface IButtonPusher {
     void sendAssociationCode(String code);
 
     void sendAssociationCodeFail();
+
+    void generateNewAesKey();
+
+    void generateDefaultAesKey();
 }

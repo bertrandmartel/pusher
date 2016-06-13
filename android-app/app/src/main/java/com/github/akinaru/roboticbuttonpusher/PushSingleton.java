@@ -170,4 +170,12 @@ public class PushSingleton {
     public void sendAssociationCodeFail() {
         mService.sendAssociationCodeFail();
     }
+
+    public void generateNewAesKey() {
+        mService.generateNewAesKey();
+    }
+
+    public void generateDefaultAesKey() {
+        mService.generateDefaultAesKey();
+    }
 }

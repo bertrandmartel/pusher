@@ -44,12 +44,17 @@ import com.github.akinaru.roboticbuttonpusher.model.NotificationState;
 import com.github.akinaru.roboticbuttonpusher.service.BtPusherService;
 import com.github.akinaru.roboticbuttonpusher.utils.RandomGen;
 
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
 
 /**
  * RFduino Bluetooth device management
@@ -170,8 +175,8 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
                 switch (mState) {
                     case SENDING:
-
-                        ButtonPusherCmd cmd = ButtonPusherCmd.getValue((charac.getValue()[0] & 0xFF) - 48);
+                        Log.i(TAG, "charac.getValue()[0] : " + charac.getValue()[0]);
+                        ButtonPusherCmd cmd = ButtonPusherCmd.getValue((charac.getValue()[0] & 0xFF));
 
                         Log.i(TAG, "test : " + cmd);
 
@@ -192,11 +197,11 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
                                 if (charac.getValue().length > 2) {
 
-                                    if (((charac.getValue()[2] & 0xFF) - 48) == 1) {
+                                    if (((charac.getValue()[2] & 0xFF)) == 1) {
                                         if (mAssociationStatusListener != null) {
                                             mAssociationStatusListener.onStatusFailure();
                                         }
-                                    } else if (((charac.getValue()[2] & 0xFF) - 48) == 0) {
+                                    } else if (((charac.getValue()[2] & 0xFF)) == 0) {
                                         if (mAssociationStatusListener != null) {
                                             mAssociationStatusListener.onStatusSuccess();
                                         }
@@ -211,15 +216,15 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
                             case COMMAND_SET_PASSWORD:
                                 if (charac.getValue().length > 2) {
 
-                                    if (((charac.getValue()[2] & 0xFF) - 48) == 1) {
+                                    if (((charac.getValue()[2] & 0xFF)) == 1) {
                                         if (mPasswordListener != null) {
                                             mPasswordListener.onFailure();
                                         }
-                                    } else if (((charac.getValue()[2] & 0xFF) - 48) == 0) {
+                                    } else if (((charac.getValue()[2] & 0xFF)) == 0) {
                                         if (mPasswordListener != null) {
                                             mPasswordListener.onSuccess();
                                         }
-                                    } else if (((charac.getValue()[2] & 0xFF) - 48) == 2) {
+                                    } else if (((charac.getValue()[2] & 0xFF)) == 2) {
                                         if (mPasswordListener != null) {
                                             mPasswordListener.onUserActionRequired();
                                         }
@@ -229,15 +234,15 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
                             case COMMAND_SET_KEY:
                                 if (charac.getValue().length > 2) {
 
-                                    if (((charac.getValue()[2] & 0xFF) - 48) == 1) {
+                                    if (((charac.getValue()[2] & 0xFF)) == 1) {
                                         if (mKeyListener != null) {
                                             mKeyListener.onFailure();
                                         }
-                                    } else if (((charac.getValue()[2] & 0xFF) - 48) == 0) {
+                                    } else if (((charac.getValue()[2] & 0xFF)) == 0) {
                                         if (mKeyListener != null) {
                                             mKeyListener.onSuccess();
                                         }
-                                    } else if (((charac.getValue()[2] & 0xFF) - 48) == 2) {
+                                    } else if (((charac.getValue()[2] & 0xFF)) == 2) {
                                         if (mKeyListener != null) {
                                             mKeyListener.onUserActionRequired();
                                         }
@@ -247,29 +252,44 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
                             case COMMAND_ASSOCIATE:
                                 if (charac.getValue().length > 2) {
 
-                                    if (((charac.getValue()[2] & 0xFF) - 48) == 1) {
+                                    if (((charac.getValue()[2] & 0xFF)) == 1) {
                                         if (mAssociationListener != null) {
                                             mAssociationListener.onFailure();
                                         }
-                                    } else if (((charac.getValue()[2] & 0xFF) - 48) == 0) {
+                                    } else if (((charac.getValue()[2] & 0xFF)) == 0) {
                                         if (mAssociationListener != null) {
                                             mAssociationListener.onSuccess();
                                         }
-                                    } else if (((charac.getValue()[2] & 0xFF) - 48) == 2) {
+                                    } else if (((charac.getValue()[2] & 0xFF)) == 2) {
                                         if (mAssociationListener != null) {
                                             mAssociationListener.onUserActionRequired();
                                         }
                                     }
                                 }
                                 break;
+                            case COMMAND_SET_KEYS_RESPONSE: {
+                                if (charac.getValue().length > 2) {
+
+                                    if (((charac.getValue()[2] & 0xFF)) == 1) {
+                                        if (mKeyListener != null) {
+                                            mKeyListener.onFailure();
+                                        }
+                                    } else if (((charac.getValue()[2] & 0xFF)) == 0) {
+                                        if (mKeyListener != null) {
+                                            mKeyListener.onSuccess();
+                                        }
+                                    }
+                                }
+                                break;
+                            }
                             case COMMAND_SET_PASSWORD_RESPONSE: {
                                 if (charac.getValue().length > 2) {
 
-                                    if (((charac.getValue()[2] & 0xFF) - 48) == 1) {
+                                    if (((charac.getValue()[2] & 0xFF)) == 1) {
                                         if (mPasswordListener != null) {
                                             mPasswordListener.onFailure();
                                         }
-                                    } else if (((charac.getValue()[2] & 0xFF) - 48) == 0) {
+                                    } else if (((charac.getValue()[2] & 0xFF)) == 0) {
                                         if (mPasswordListener != null) {
                                             mPasswordListener.onSuccess();
                                         }
@@ -280,7 +300,7 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
                             case COMMAND_ASSOCIATE_RESPONSE:
                                 if (charac.getValue().length > 2) {
 
-                                    if (((charac.getValue()[2] & 0xFF) - 48) == 2) {
+                                    if (((charac.getValue()[2] & 0xFF)) == 2) {
 
                                         Log.i(TAG, "receiving association response");
                                         mState = NotificationState.RECEIVING;
@@ -300,11 +320,11 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
                             case COMMAND_PUSH:
                                 if (charac.getValue().length > 2) {
 
-                                    if (((charac.getValue()[2] & 0xFF) - 48) == 1) {
+                                    if (((charac.getValue()[2] & 0xFF)) == 1) {
                                         if (mPushListener != null) {
                                             mPushListener.onPushFailure();
                                         }
-                                    } else if (((charac.getValue()[2] & 0xFF) - 48) == 0) {
+                                    } else if (((charac.getValue()[2] & 0xFF)) == 0) {
                                         if (mPushListener != null) {
                                             mPushListener.onPushSuccess();
                                         }
@@ -591,23 +611,63 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
     }
 
-    private void sendCommitedKeysResponse(String code, byte[] token, ButtonPusherCmd cmd) {
+    private void sendCommitedKeysResponse(String code, byte[] token, ButtonPusherCmd cmd) throws NoSuchAlgorithmException {
 
         if (code.toUpperCase().matches("[0123456789ABCDEF]*") && (code.length() % 2 == 0)) {
 
             byte[] codeBa = hexStringToByteArray(code.toUpperCase());
             byte[] serial = hexStringToByteArray(Build.SERIAL);
-            byte[] data = new byte[8 + 32 + 8];
+            byte[] data = new byte[64];
+
+            byte[] decodedVal = new byte[56];
+            System.arraycopy(token, 0, decodedVal, 0, 8);
+            Log.i(TAG, "complete1 : " + bytesToHex(decodedVal));
+
+            KeyGenerator keyGen = KeyGenerator.getInstance("AES");
+            keyGen.init(256); // for example
+            SecretKey secretKey = keyGen.generateKey();
+            byte[] aesKey = secretKey.getEncoded();
+            Log.i(TAG, "secretKey => " + secretKey.getEncoded().length);
+
+
+            Log.i(TAG, "complete2 : " + bytesToHex(decodedVal));
+            for (int i = 8; i < 40; i++) {
+                decodedVal[i + 8] = aesKey[i - 8];
+            }
+
+            byte[] iv = new byte[16];
+            new Random().nextBytes(iv);
+
+            for (int i = 40; i < 56; i++) {
+                decodedVal[i] = iv[i - 40];
+            }
+
+            Log.i(TAG, "complete3 : " + bytesToHex(decodedVal));
+
+            Log.i(TAG, "token length : " + token.length);
+            byte[] xored1 = new byte[32];
+            byte[] xored2 = new byte[32];
+
+            for (byte element = 0; element < 32; element++) {
+                xored1[element] = (byte) (mXorKey[element] ^ decodedVal[element]);
+            }
+            for (byte element = 32; element < 56; element++) {
+                xored2[element - 32] = (byte) (mXorKey[element - 32] ^ decodedVal[element]);
+            }
+
+            Log.i(TAG, "device idd : " + bytesToHex(serial) + " => " + Build.SERIAL);
 
             for (int j = 0; j < 8; j++) {
                 data[j] = serial[j];
             }
-            for (int j = 0; j < 32; j++) {
-                data[j + 8] = mXorKey[j];
+
+            for (int j = 8; j < 40; j++) {
+                data[j] = xored1[j - 8];
             }
-            for (int j = 0; j < 8; j++) {
-                data[j + 40] = token[j];
+            for (int j = 40; j < 64; j++) {
+                data[j] = xored2[j - 40];
             }
+
             Log.i(TAG, "code    : " + bytesToHex(codeBa));
             Log.i(TAG, "Build.SERIAL : " + Build.SERIAL + " serial  : " + bytesToHex(serial));
             mExternalKey = BtPusherService.generatekey(codeBa);
@@ -616,11 +676,11 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
             Log.i(TAG, "key : " + bytesToHex(mExternalKey));
             Log.i(TAG, "iv  : " + bytesToHex(mExternalIv));
 
-            sendBitmap((byte) cmd.ordinal(), BtPusherService.encrypt(data, data.length, mExternalKey, Arrays.copyOf(mExternalIv, mExternalIv.length)));
+            sendBitmap((byte) ButtonPusherCmd.COMMAND_SET_KEYS_RESPONSE.ordinal(), BtPusherService.encrypt(data, data.length, mExternalKey, Arrays.copyOf(mExternalIv, mExternalIv.length)));
 
         } else {
             Log.e(TAG, "error code is invalid");
-            mKeyListener.onFailure();
+            mPasswordListener.onFailure();
         }
     }
 
@@ -714,12 +774,14 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
                                 mKeyListener = new IInteractiveListener() {
                                     @Override
                                     public void onSuccess() {
-
+                                        Log.i(TAG, "set key success");
+                                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_SET_KEYS_SUCCESS, new ArrayList<String>());
                                     }
 
                                     @Override
                                     public void onFailure() {
-
+                                        Log.e(TAG, "set key failure");
+                                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_SET_KEYS_FAILURE, new ArrayList<String>());
                                     }
 
                                     @Override
@@ -729,9 +791,21 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
                                     }
 
                                     @Override
-                                    public void onUserActionCommitted(String code) {
-                                        Log.i(TAG, "user action committed : " + code);
-                                        sendUserCommittedResponse(code, token, ButtonPusherCmd.COMMAND_SET_KEYS_RESPONSE);
+                                    public void onUserActionCommitted(final String code) {
+
+                                        mTokenListener = new ITokenListener() {
+                                            @Override
+                                            public void onTokenReceived(byte[] token) {
+                                                mToken = token;
+                                                Log.i(TAG, "user action committed : " + code);
+                                                try {
+                                                    sendCommitedKeysResponse(code, token, ButtonPusherCmd.COMMAND_SET_KEYS_RESPONSE);
+                                                } catch (NoSuchAlgorithmException e) {
+                                                    e.printStackTrace();
+                                                }
+                                            }
+                                        };
+                                        conn.writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, new byte[]{(byte) ButtonPusherCmd.COMMAND_GET_TOKEN.ordinal()}, null);
                                     }
                                 };
                                 break;
