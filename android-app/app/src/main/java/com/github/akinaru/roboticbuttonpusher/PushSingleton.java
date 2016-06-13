@@ -159,8 +159,8 @@ public class PushSingleton {
         mService.setPassword(password);
     }
 
-    public void uploadPassword(String pass) {
-        mService.uploadPassword(pass);
+    public void uploadPassword(String oldPass) {
+        mService.uploadPassword(oldPass);
     }
 
     public void sendAssociationCode(String code) {

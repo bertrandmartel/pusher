@@ -37,6 +37,8 @@ import com.github.akinaru.roboticbuttonpusher.inter.IButtonPusher;
  */
 public class DevicePasswordDialog extends AlertDialog {
 
+    private String oldPass;
+
     public DevicePasswordDialog(final IButtonPusher activity) {
         super(activity.getContext());
 
@@ -45,7 +47,8 @@ public class DevicePasswordDialog extends AlertDialog {
         setView(dialoglayout);
 
         final EditText devicePassEt = (EditText) dialoglayout.findViewById(R.id.device_password_value);
-        devicePassEt.setText(activity.getPassword());
+        oldPass = activity.getPassword();
+        devicePassEt.setText(oldPass);
 
         final CheckBox checkbox = (CheckBox) dialoglayout.findViewById(R.id.device_password_display_cb);
 
@@ -71,7 +74,7 @@ public class DevicePasswordDialog extends AlertDialog {
             public void onClick(DialogInterface dialog, int which) {
                 activity.setPassword(devicePassEt.getText().toString());
                 if (passwordUploadCb.isChecked()) {
-                    activity.uploadPassword(devicePassEt.getText().toString());
+                    activity.uploadPassword(oldPass);
                 }
             }
         });

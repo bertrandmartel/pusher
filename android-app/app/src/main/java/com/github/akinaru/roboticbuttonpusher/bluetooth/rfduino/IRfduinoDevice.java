@@ -31,7 +31,7 @@ public interface IRfduinoDevice {
 
     void sendAssociationCode(String code);
 
-    void setPassword(String password);
+    void setPassword(String oldPassword);
 
     void setKeys(String password, BtnPusherKeysType keysType);
 }

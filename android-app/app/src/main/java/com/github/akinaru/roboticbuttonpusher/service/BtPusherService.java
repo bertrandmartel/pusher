@@ -74,7 +74,7 @@ public class BtPusherService extends Service {
 
     private BtnPusherInputTask mTaskState = BtnPusherInputTask.PUSH;
 
-    private String mTempPwd;
+    private String oldPwd;
 
     /**
      * Service binder
@@ -321,7 +321,7 @@ public class BtPusherService extends Service {
                                 break;
                             case PASSWORD:
                                 setTimeoutTask(ButtonPusherError.SET_PASSWORD_TIMEOUT, REQUEST_TIMEOUT);
-                                device.setPassword(mPassword);
+                                device.setPassword(oldPwd);
                                 break;
                             case KEYS_DEFAULT:
                                 setTimeoutTask(ButtonPusherError.SET_KEYS_TIMEOUT, REQUEST_TIMEOUT);
@@ -470,6 +470,10 @@ public class BtPusherService extends Service {
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_SUCCESS);
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_PUSH_SUCCESS);
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_PUSH_FAILURE);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_SET_PASSWORD_SUCCESS);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_SET_PASSWORD_FAILURE);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_SET_KEYS_FAILURE);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_SET_KEYS_SUCCESS);
         return intentFilter;
     }
 
@@ -555,9 +559,9 @@ public class BtPusherService extends Service {
         mState = ButtonPusherState.NONE;
     }
 
-    public void uploadPassword(String pass) {
+    public void uploadPassword(String oldPass) {
+        this.oldPwd = oldPass;
         mTaskState = BtnPusherInputTask.PASSWORD;
-        mTempPwd = pass;
         chainTasks();
     }
 
