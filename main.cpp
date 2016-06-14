@@ -2,6 +2,7 @@
 #include <Servo.h>
 #include <RFduinoBLE.h>
 #include <string>
+#include <LiquidCrystal.h>
 
 #include <AES.h>
 
@@ -126,6 +127,8 @@ data_t *in_flash = (data_t*)ADDRESS_OF_PAGE(CONFIG_STORAGE);
 uint32_t *device_config = ADDRESS_OF_PAGE(DEVICE_CONFIG_STORAGE);
 
 uint16_t bit;
+
+LiquidCrystal lcd(5, 4, 3, 2, 1, 0);
 
 uint16_t random()
 {
@@ -383,6 +386,14 @@ void setup() {
 
   Serial.begin(9600);
   
+  // set up the LCD's number of columns and rows:
+  lcd.begin(16, 2);
+
+   delay(500);
+
+  // Print a message to the LCD.
+  lcd.print("hello, world!");
+  
   lfsr = myRandom16();
 
   pinMode(led, OUTPUT);
@@ -397,6 +408,7 @@ void setup() {
 
   //prekey(256,4);
   write();
+  
 }
 
 bool interrupting(){
@@ -420,6 +432,7 @@ void loop() {
     add_device_pending=false;
     RFduinoBLE.begin();
   }
+  
 }
 
 void interrupt(){
