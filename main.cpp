@@ -35,6 +35,7 @@ struct device
 #define LFSR_DEFAULT_VALUE 0xACE1u
 #define MAX_ASSOCIATED_DEVICE 25
 #define MESSAGE_DEFAULT "Have a good day!"
+#define CODE_EXPIRING_TIME_SECONDS 30
 
 device * device_ptr = new device[MAX_ASSOCIATED_DEVICE];
 char token[16];
@@ -45,6 +46,8 @@ uint8_t cmd = 0;
 uint16_t data_length = 0;
 bool use_local_keys = true;
 uint16_t sending_index = 0;
+bool code_expiring=false;
+unsigned long code_expiring_time=0;
 
 AES aes ;
 
@@ -509,6 +512,21 @@ void loop() {
     //print_lcd_message(MESSAGE_DEFAULT,"");
   }
   
+  if (code_expiring){
+
+    int rem = code_expiring_time-millis();
+
+    if (code_expiring_time!=0 && rem<=0){
+      Serial.println("code has expired");
+      code_expiring_time=0;
+      code_expiring=false;
+      memset(token, 0, 8);
+      memset(external_iv, 0, 16);
+      memset(external_key, 0, 32);
+      lcd.clear();
+      lcd.print(MESSAGE_DEFAULT);
+    }
+  }
 }
 
 void interrupt(){
@@ -545,7 +563,11 @@ void RFduinoBLE_onDisconnect(){
   #ifdef __PRINT_LOG__
     Serial.println("onDisconnect");
   #endif //__PRINT_LOG__
-
+  memset(token, 0, 8);
+  memset(external_iv, 0, 16);
+  memset(external_key, 0, 32);
+  code_expiring=false;
+  code_expiring_time=0;
   use_local_keys=true;
   free(response);
   response=0;
@@ -679,6 +701,8 @@ void generateRandomKeys(){
 
   generate_key(code,external_key);
   generate_iv(code,external_iv);
+  code_expiring_time = millis()+CODE_EXPIRING_TIME_SECONDS*1000;
+  code_expiring=true;
 
   #ifdef __PRINT_LOG__
     Serial.println("code : ");
@@ -1299,6 +1323,11 @@ void executeCmd(byte *check){
           Serial.println("association success");
         #endif //__PRINT_LOG__ 
 
+        if (external_iv[0]==0x00 || external_key[0]==0x00){
+          Serial.println("invalid key/iv");
+          sendCommandStatus(COMMAND_ASSOCIATE,false);
+          return;
+        }
         //record xor / device id
         add_device(device_id,xor_key);
         
@@ -1676,6 +1705,12 @@ void RFduinoBLE_onReceive(char *data, int len){
             }
             Serial.println("");
           #endif //__PRINT_LOG__
+
+          if (external_iv[0]==0x00 || external_key[0]==0x00){
+            Serial.println("invalid key/iv");
+            sendCommandFailure();
+            return;
+          }
 
           succ = aes.set_key (external_key, 256);
 
