@@ -59,8 +59,6 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
 
     private static final boolean DEFAULT_DEBUG_MODE = false;
 
-    private String mDeviceName;
-
     private String mPassword;
 
     private boolean mDebugMode;
@@ -164,8 +162,6 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
 
         //shared preference
         sharedPref = getSharedPreferences(SharedPrefConst.PREFERENCES, Context.MODE_PRIVATE);
-
-        mDeviceName = sharedPref.getString(SharedPrefConst.DEVICE_NAME_FIELD, SharedPrefConst.DEFAULT_DEVICE_NAME);
         mPassword = sharedPref.getString(SharedPrefConst.DEVICE_PASSWORD_FIELD, SharedPrefConst.DEFAULT_PASSWORD);
         mDebugMode = sharedPref.getBoolean(SharedPrefConst.DEBUG_MODE_FIELD, DEFAULT_DEBUG_MODE);
         mAssociated = sharedPref.getBoolean(SharedPrefConst.ASSOCIATED_STATUS, false);
@@ -321,8 +317,6 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         boolean ret = super.onPrepareOptionsMenu(menu);
-        nvDrawer.getMenu().findItem(R.id.devicename_item).setTitle(getString(R.string.menu_device_name) + " " + mDeviceName);
-
         String debugModeStr = mDebugMode ? "enabled" : "disabled";
 
         nvDrawer.getMenu().findItem(R.id.debug_mode_item).setTitle(getString(R.string.debug_mode_title) + " " + debugModeStr);
@@ -492,11 +486,6 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
     }
 
     @Override
-    public String getDeviceName() {
-        return mDeviceName;
-    }
-
-    @Override
     public boolean getDebugMode() {
         return mDebugMode;
     }
@@ -504,24 +493,6 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
     @Override
     public Context getContext() {
         return this;
-    }
-
-    @Override
-    public void setDeviceName(String deviceName) {
-
-        if (deviceName != null && !deviceName.equals("")) {
-            SharedPreferences.Editor editor = sharedPref.edit();
-            editor.putString(SharedPrefConst.DEVICE_NAME_FIELD, deviceName);
-            editor.commit();
-            mDeviceName = deviceName;
-            mSingleton.setDeviceName(mDeviceName);
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    nvDrawer.getMenu().findItem(R.id.devicename_item).setTitle(getString(R.string.menu_device_name) + " " + mDeviceName);
-                }
-            });
-        }
     }
 
     @Override

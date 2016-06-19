@@ -28,7 +28,6 @@ import android.view.MenuItem;
 
 import com.github.akinaru.roboticbuttonpusher.R;
 import com.github.akinaru.roboticbuttonpusher.dialog.AboutDialog;
-import com.github.akinaru.roboticbuttonpusher.dialog.DeviceNameDialog;
 import com.github.akinaru.roboticbuttonpusher.dialog.DevicePasswordDialog;
 import com.github.akinaru.roboticbuttonpusher.dialog.KeysDialog;
 import com.github.akinaru.roboticbuttonpusher.dialog.OpenSourceItemsDialog;
@@ -51,13 +50,6 @@ public class MenuUtils {
     public static void selectDrawerItem(MenuItem menuItem, DrawerLayout mDrawer, Context context, final IButtonPusher buttonPusher) {
 
         switch (menuItem.getItemId()) {
-            case R.id.devicename_item: {
-                if (buttonPusher != null) {
-                    DeviceNameDialog dialog = new DeviceNameDialog(buttonPusher);
-                    dialog.show();
-                }
-                break;
-            }
             case R.id.exit_item: {
                 buttonPusher.disassociate();
                 break;

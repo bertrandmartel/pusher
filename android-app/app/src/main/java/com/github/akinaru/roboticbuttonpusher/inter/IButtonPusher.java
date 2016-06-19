@@ -9,14 +9,9 @@ public interface IButtonPusher {
 
     String getPassword();
 
-    String getDeviceName();
-
     boolean getDebugMode();
 
     Context getContext();
-
-    void setDeviceName(String deviceName);
-
     void setPassword(String pass);
 
     void setDebugMode(boolean status);

@@ -109,10 +109,6 @@ public class BtPusherService extends Service {
         this.mListener = listener;
     }
 
-    public void setDeviceName(String deviceName) {
-        this.mDeviceName = deviceName;
-    }
-
     public void setPassword(String password) {
         this.mPassword = password;
     }
@@ -178,8 +174,6 @@ public class BtPusherService extends Service {
 
     private BluetoothCustomManager btManager = null;
 
-    private String mDeviceName;
-
     private String mPassword;
 
     @Override
@@ -197,7 +191,6 @@ public class BtPusherService extends Service {
         registerReceiver(mBluetoothReceiver, makeGattUpdateIntentFilter());
 
         SharedPreferences pref = getSharedPreferences(SharedPrefConst.PREFERENCES, Context.MODE_PRIVATE);
-        mDeviceName = pref.getString(SharedPrefConst.DEVICE_NAME_FIELD, SharedPrefConst.DEFAULT_DEVICE_NAME);
         mPassword = pref.getString(SharedPrefConst.DEVICE_PASSWORD_FIELD, SharedPrefConst.DEFAULT_PASSWORD);
     }
 
@@ -270,8 +263,8 @@ public class BtPusherService extends Service {
 
                     final BluetoothObject btDeviceTmp = BluetoothObject.parseArrayList(intent);
 
-                    if (btDeviceTmp != null && btDeviceTmp.getDeviceName().equals(mDeviceName)) {
-                        Log.v(TAG, "found device " + mDeviceName);
+                    if (btDeviceTmp != null && btDeviceTmp.getDeviceName().equals("RFduino")) {
+                        Log.v(TAG, "found device ");
                         if (mTimeoutTask != null) {
                             mTimeoutTask.cancel(true);
                         }
