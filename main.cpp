@@ -48,13 +48,13 @@ uint16_t sending_index = 0;
 
 AES aes ;
 
-byte default_key[] = 
+byte default_key[32] = 
 {
   0xF2, 0x1E, 0x07, 0x8C, 0x96, 0x99, 0x5E, 0xF7, 0xED, 0xF0, 0x91, 0x84, 0x06, 0x06, 0xF3, 0x94,
   0x59, 0x90, 0x66, 0x63, 0x81, 0xE9, 0x14, 0x3E, 0x7B, 0x02, 0x7E, 0x08, 0xB6, 0xC7, 0x06, 0x26
 } ;
 
-byte default_iv[] = 
+byte default_iv[16] = 
 {
   0xC3, 0x78, 0x7E, 0x76, 0x31, 0x6D, 0x6B, 0x5B, 0xB8, 0x8E, 0xDA, 0x03, 0x82, 0xEB, 0x57, 0xBD
 } ;
@@ -107,13 +107,21 @@ struct data_t
   char pass[4*N_BLOCK];
   uint16_t flag;
   uint8_t device_num;
-  byte key[32];
-  byte iv[16];
+  char key[32];
+  char iv[16];
 };
 
 data_t config = { 
   "admin" ,
-  0
+  0,
+  0,
+  {
+  0xF2, 0x1E, 0x07, 0x8C, 0x96, 0x99, 0x5E, 0xF7, 0xED, 0xF0, 0x91, 0x84, 0x06, 0x06, 0xF3, 0x94,
+  0x59, 0x90, 0x66, 0x63, 0x81, 0xE9, 0x14, 0x3E, 0x7B, 0x02, 0x7E, 0x08, 0xB6, 0xC7, 0x06, 0x26
+},
+  {
+  0xC3, 0x78, 0x7E, 0x76, 0x31, 0x6D, 0x6B, 0x5B, 0xB8, 0x8E, 0xDA, 0x03, 0x82, 0xEB, 0x57, 0xBD
+}
 };
 
 Servo s1;
@@ -139,13 +147,20 @@ void write_host_config(device *item){
   int rc = flashWriteBlock(device_config, item, sizeof(device));
   device_config+=10;
 
+    lcd.clear();
+    lcd.print("write status : ");
+    lcd.print(rc);
+  
   #ifdef __PRINT_LOG__
-    if (rc == 0)
+    if (rc == 0){
       Serial.println("Success");
-    else if (rc == 1)
+    }
+    else if (rc == 1){
         Serial.println("Error - the flash page is reserved");
-    else if (rc == 2)
+      }
+    else if (rc == 2){
         Serial.println("Error - the flash page is used by the sketch");
+      }
   #endif //__PRINT_LOG__
 }
 
@@ -220,8 +235,8 @@ void save_config(bool default_config){
         #endif //__PRINT_LOG__
 
         write_host_config(&device_ptr[config.device_num-1]);
-        lcd.clear();
-        lcd.print("associated!");
+        //lcd.clear();
+        //lcd.print("associated!");
       }
     }
 }
@@ -350,6 +365,14 @@ void erase_host_config(){
 
 char* is_associated(char * device_id){
 
+  Serial.println("in is_associated");
+  for (int i  = 0; i  < 8;i++){
+    char test[2];
+    sprintf(test,"%02X",device_id[i]);
+    Serial.print(test);
+  }
+  Serial.println("");
+
   for (int i = 0; i< MAX_ASSOCIATED_DEVICE;i++){
 
     if (memcmp(device_ptr[i].device_id,device_id,8)==0){
@@ -384,7 +407,7 @@ void write(){
  
   in_flash = (data_t*)ADDRESS_OF_PAGE(CONFIG_STORAGE);
 
-  if (in_flash->flag != 0){
+  if (in_flash->flag != 1){
 
     #ifdef __PRINT_LOG__
       Serial.println("writing default configuration");
@@ -410,6 +433,14 @@ void write(){
     config.flag=1;
     config.device_num=in_flash->device_num;
 
+    for (int i = 0; i < 32;i++){
+      config.key[i]=in_flash->key[i];
+    }
+
+    for (int i = 0; i < 16;i++){
+      config.iv[i]=in_flash->iv[i];
+    }
+
     #ifdef __PRINT_LOG__
       Serial.print("encrypted password : ");
       for (byte i = 0; i < (4*N_BLOCK); i++){
@@ -431,11 +462,11 @@ void print_lcd_message(char * header,char * message){
 }
 
 void setup() {
-  /*
+
   #ifdef __PRINT_LOG__
    Serial.begin(9600);
   #endif //__PRINT_LOG__
-  */
+  
   lcd.begin(16, 2);
 
   print_lcd_message(MESSAGE_DEFAULT,"");
@@ -475,7 +506,7 @@ void loop() {
     save_config(false);
     add_device_pending=false;
     RFduinoBLE.begin();
-    print_lcd_message(MESSAGE_DEFAULT,"");
+    //print_lcd_message(MESSAGE_DEFAULT,"");
   }
   
 }
@@ -737,6 +768,7 @@ void processEncryptedFrame(byte * check){
       memset(token, 0, 8);
 
       char sent_pass[64];
+      char pass_temp[64];
 
       for (int i = 8;i<28;i++){
         sent_pass[i-8] = xor_decoded[i];
@@ -747,9 +779,14 @@ void processEncryptedFrame(byte * check){
 
       //decrypt current pass
       byte pass[64];
+
       byte iv[16];
       byte cipher[64];
-      byte succ = aes.set_key (config.key, 256);
+      byte key[32];
+      for (int i = 0; i < 32;i++){
+        key[i]=config.key[i];
+      }
+      byte succ = aes.set_key (key, 256);
 
       for (byte i = 0 ; i < 16 ; i++){
         iv[i] = config.iv[i] ;
@@ -759,8 +796,12 @@ void processEncryptedFrame(byte * check){
       }
       //decrypt
       succ = aes.cbc_decrypt(cipher, pass, 4, iv) ;
+      
+      for (int i  =0; i  < 64;i++){
+        pass_temp[i]=pass[i];
+      }
 
-      if (memcmp(sent_pass,pass,64)==0){
+      if (memcmp(sent_pass,pass_temp,64)==0){
 
         switch (cmd){
           case COMMAND_PUSH:
@@ -822,7 +863,9 @@ void processEncryptedFrame(byte * check){
       }
       else{
 
-        print_lcd_message("command failure:","bad password");
+        lcd.clear();
+        lcd.print(succ);
+        //print_lcd_message(sent_pass,pass_temp);
 
         #ifdef __PRINT_LOG__
           Serial.println("cmd failure : bad pass");
@@ -1014,7 +1057,12 @@ void executeCmd(byte *check){
 
           memset(token, 0, 8);
 
-          byte succ = aes.set_key (config.key, 256);
+          byte key[32];
+          for (int i = 0; i < 32;i++){
+            key[i]=config.key[i];
+          }
+
+          byte succ = aes.set_key (key, 256);
 
           int blocks = 4;
           byte cipher [4*N_BLOCK] ;
@@ -1145,7 +1193,12 @@ void executeCmd(byte *check){
           byte pass[64];
           byte iv[16];
           byte cipher[64];
-          byte succ = aes.set_key (config.key, 256);
+          byte key[32];
+          for (int i = 0; i < 32;i++){
+            key[i]=config.key[i];
+          }
+
+          byte succ = aes.set_key (key, 256);
 
           for (byte i = 0 ; i < 16 ; i++){
             iv[i] = config.iv[i] ;
@@ -1170,7 +1223,7 @@ void executeCmd(byte *check){
             config.iv[i]=xor_decoded[i+8+32];
           }
 
-          succ = aes.set_key (config.key, 256);
+          succ = aes.set_key (key, 256);
 
           for (byte i = 0 ; i < N_BLOCK ; i++){
             iv[i] = config.iv[i] ;
@@ -1593,7 +1646,12 @@ void RFduinoBLE_onReceive(char *data, int len){
           for (byte i = 0 ; i < 16 ; i++){
             iv[i] = config.iv[i] ;
           }
-          succ = aes.set_key (config.key, 256);
+
+          byte key[32];
+          for (int i = 0; i < 32;i++){
+            key[i]=config.key[i];
+          }
+          succ = aes.set_key (key, 256);
         }
         else{
           
