@@ -4,11 +4,6 @@
     <group android:checkableBehavior="single">
 
         <item
-            android:id="@+id/devicename_item"
-            android:icon="@drawable/ic_memory"
-            android:title="@string/menu_device_name" />
-
-        <item
             android:id="@+id/password_item"
             android:icon="@drawable/ic_action_lock_closed"
             android:title="@string/menu_password" />

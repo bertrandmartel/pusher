@@ -151,10 +151,6 @@ public class PushSingleton {
         }
     }
 
-    public void setDeviceName(String deviceName) {
-        mService.setDeviceName(deviceName);
-    }
-
     public void setPassword(String password) {
         mService.setPassword(password);
     }

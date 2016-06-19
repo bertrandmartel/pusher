@@ -5,13 +5,9 @@ package com.github.akinaru.roboticbuttonpusher.constant;
  */
 public class SharedPrefConst {
 
-    public static final String DEFAULT_DEVICE_NAME = "RFduino";
-
     public static final String DEFAULT_PASSWORD = "admin";
 
     public static final String PREFERENCES = "storage";
-
-    public static final String DEVICE_NAME_FIELD = "deviceName";
 
     public static final String XOR_KEY = "xorKey";
 
