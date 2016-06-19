@@ -34,6 +34,7 @@ struct device
 
 #define LFSR_DEFAULT_VALUE 0xACE1u
 #define MAX_ASSOCIATED_DEVICE 25
+#define MESSAGE_DEFAULT "Have a good day!"
 
 device * device_ptr = new device[MAX_ASSOCIATED_DEVICE];
 char token[16];
@@ -119,16 +120,13 @@ Servo s1;
 
 bool add_device_pending = false;
 
-int led = 3;
-int button = 5;
-
 data_t *in_flash = (data_t*)ADDRESS_OF_PAGE(CONFIG_STORAGE);
 
 uint32_t *device_config = ADDRESS_OF_PAGE(DEVICE_CONFIG_STORAGE);
 
 uint16_t bit;
 
-LiquidCrystal lcd(5, 4, 3, 2, 1, 0);
+LiquidCrystal lcd(6, 5, 4, 3, 1, 0);
 
 uint16_t random()
 {
@@ -141,17 +139,21 @@ void write_host_config(device *item){
   int rc = flashWriteBlock(device_config, item, sizeof(device));
   device_config+=10;
 
-  if (rc == 0)
-    Serial.println("Success");
-  else if (rc == 1)
-      Serial.println("Error - the flash page is reserved");
-  else if (rc == 2)
-      Serial.println("Error - the flash page is used by the sketch");
+  #ifdef __PRINT_LOG__
+    if (rc == 0)
+      Serial.println("Success");
+    else if (rc == 1)
+        Serial.println("Error - the flash page is reserved");
+    else if (rc == 2)
+        Serial.println("Error - the flash page is used by the sketch");
+  #endif //__PRINT_LOG__
 }
 
 void save_config(bool default_config){
 
-    Serial.println("save_config");
+    #ifdef __PRINT_LOG__
+      Serial.println("save_config");
+    #endif //__PRINT_LOG__
 
     if (default_config){
 
@@ -176,10 +178,12 @@ void save_config(bool default_config){
         config.pass[i]=cipher[i];
       }
 
-      for (byte i = 0; i < (4*N_BLOCK); i++){
-        Serial.print (cipher[i]>>4, HEX) ; Serial.print (cipher[i]&15, HEX) ; Serial.print (" ") ;
-      }
-      Serial.println();
+      #ifdef __PRINT_LOG__
+        for (byte i = 0; i < (4*N_BLOCK); i++){
+          Serial.print (cipher[i]>>4, HEX) ; Serial.print (cipher[i]&15, HEX) ; Serial.print (" ") ;
+        }
+        Serial.println();
+      #endif //__PRINT_LOG__
 
       config.flag = 1;
       config.device_num=0;
@@ -199,39 +203,63 @@ void save_config(bool default_config){
 
     flashPageErase(PAGE_FROM_ADDRESS(in_flash));
 
-    int rc = flashWriteBlock(in_flash, &config, sizeof(config));
+    while (RFduinoBLE_radioActive);
+
+    flashWriteBlock(in_flash, &config, sizeof(config));
 
     if (add_device_pending){
 
-      Serial.println("in add_device_pending");
+      #ifdef __PRINT_LOG__
+        Serial.println("in add_device_pending");
+      #endif //__PRINT_LOG__
 
       if (config.device_num>0){
-        Serial.println("saving new associated device");
+
+        #ifdef __PRINT_LOG__
+          Serial.println("saving new associated device");
+        #endif //__PRINT_LOG__
+
         write_host_config(&device_ptr[config.device_num-1]);
+        lcd.clear();
+        lcd.print("associated!");
       }
     }
 }
 
 void add_device(char * device_id,char * xor_key){
 
-  Serial.println("adding device in configuration");
+  #ifdef __PRINT_LOG__
+    Serial.println("adding device in configuration");
+  #endif //__PRINT_LOG__
 
   if (config.device_num<MAX_ASSOCIATED_DEVICE){
 
-    Serial.println(config.device_num);
+    #ifdef __PRINT_LOG__
+      Serial.println(config.device_num);
+    #endif //__PRINT_LOG__
+
     memcpy(device_ptr[config.device_num].device_id, device_id,8);
     memcpy(device_ptr[config.device_num].xor_key, xor_key,32);
 
-    Serial.println("add device to config");
+    #ifdef __PRINT_LOG__
+      Serial.println("add device to config");
+    #endif //__PRINT_LOG__
 
     config.device_num++;
 
     add_device_pending=true;
 
-    Serial.println(config.device_num);
+    #ifdef __PRINT_LOG__
+      Serial.println(config.device_num);
+    #endif //__PRINT_LOG__
+
   }
   else{
-    Serial.println("error max device is reached");
+
+    #ifdef __PRINT_LOG__
+      Serial.println("error max device is reached");
+    #endif //__PRINT_LOG__
+
   }
 }
 
@@ -258,11 +286,15 @@ void load_fake_host_config(){
       strcpy(device_ptr[i].device_id, buf);
       strcpy(device_ptr[i].xor_key, xor_key);
     }
-    Serial.print(i);
-    Serial.print(" => ");
-    Serial.print(device_ptr[i].device_id);
-    Serial.print(" : ");
-    Serial.println(device_ptr[i].xor_key);
+
+    #ifdef __PRINT_LOG__
+      Serial.print(i);
+      Serial.print(" => ");
+      Serial.print(device_ptr[i].device_id);
+      Serial.print(" : ");
+      Serial.println(device_ptr[i].xor_key);
+    #endif //__PRINT_LOG__
+
   }
 }
 
@@ -274,28 +306,36 @@ void print_all_config(){
 
   device *item = 0;
 
-  Serial.println("-----------------------------");
-  Serial.print("associated device list (size : ");
-  Serial.print(config.device_num);
-  Serial.println(") : ");
-
+  #ifdef __PRINT_LOG__
+    Serial.println("-----------------------------");
+    Serial.print("associated device list (size : ");
+    Serial.print(config.device_num);
+    Serial.println(") : ");
+  #endif //__PRINT_LOG__
+  
   for (int i = 0; i< config.device_num;i++){
     item = (device*)save_ptr;
 
     strcpy(device_ptr[i].device_id, item->device_id);
     strcpy(device_ptr[i].xor_key, item->xor_key);
 
-    for (int j = 0 ; j < 8;j++){
-      Serial.print (device_ptr[i].device_id[j]>>4, HEX) ; Serial.print (device_ptr[i].device_id[j]&15, HEX) ; Serial.print (" ") ;
-    }
-    Serial.print(" | ");
-    for (int j = 0 ; j < 32;j++){
-      Serial.print (device_ptr[i].xor_key[j]>>4, HEX) ; Serial.print (device_ptr[i].xor_key[j]&15, HEX) ; Serial.print (" ") ;
-    }
-    Serial.println("");
+    #ifdef __PRINT_LOG__
+      for (int j = 0 ; j < 8;j++){
+        Serial.print (device_ptr[i].device_id[j]>>4, HEX) ; Serial.print (device_ptr[i].device_id[j]&15, HEX) ; Serial.print (" ") ;
+      }
+      Serial.print(" | ");
+      for (int j = 0 ; j < 32;j++){
+        Serial.print (device_ptr[i].xor_key[j]>>4, HEX) ; Serial.print (device_ptr[i].xor_key[j]&15, HEX) ; Serial.print (" ") ;
+      }
+      Serial.println("");
+    #endif //__PRINT_LOG__
+
     save_ptr+=10;
   }
-  Serial.println("-----------------------------");
+
+  #ifdef __PRINT_LOG__
+    Serial.println("-----------------------------");
+  #endif //__PRINT_LOG__
 }
 
 void erase_host_config(){
@@ -346,24 +386,22 @@ void write(){
 
   if (in_flash->flag != 0){
 
-    Serial.println("writing default configuration");
+    #ifdef __PRINT_LOG__
+      Serial.println("writing default configuration");
+    #endif //__PRINT_LOG__
 
     save_config(true);
     
     erase_host_config();
     //load_fake_host_config();
-    /*
-    for (int i = 0; i< MAX_ASSOCIATED_DEVICE;i++){
-      write_host_config(&device_ptr[i]);
-    }
-    */
 
     RFduinoBLE.begin();
-
   }
   else {
 
-    Serial.println("getting default configuration");
+    #ifdef __PRINT_LOG__
+      Serial.println("getting default configuration");
+    #endif //__PRINT_LOG__
 
     for (byte i = 0; i < (4*N_BLOCK); i++){
       config.pass[i]=in_flash->pass[i];
@@ -372,35 +410,37 @@ void write(){
     config.flag=1;
     config.device_num=in_flash->device_num;
 
-    Serial.print("encrypted password : ");
-    for (byte i = 0; i < (4*N_BLOCK); i++){
-      Serial.print ( config.pass[i]>>4, HEX) ; Serial.print ( config.pass[i]&15, HEX) ; Serial.print (" ") ;
-    }
-    Serial.println();
+    #ifdef __PRINT_LOG__
+      Serial.print("encrypted password : ");
+      for (byte i = 0; i < (4*N_BLOCK); i++){
+        Serial.print ( config.pass[i]>>4, HEX) ; Serial.print ( config.pass[i]&15, HEX) ; Serial.print (" ") ;
+      }
+      Serial.println();
+    #endif //__PRINT_LOG__
   }
 
   print_all_config();
 }
 
-void setup() {
+void print_lcd_message(char * header,char * message){
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print(header);
+  lcd.setCursor(0,1);
+  lcd.print(message);
+}
 
-  Serial.begin(9600);
-  
-  // set up the LCD's number of columns and rows:
+void setup() {
+  /*
+  #ifdef __PRINT_LOG__
+   Serial.begin(9600);
+  #endif //__PRINT_LOG__
+  */
   lcd.begin(16, 2);
 
-   delay(500);
+  print_lcd_message(MESSAGE_DEFAULT,"");
 
-  // Print a message to the LCD.
-  lcd.print("hello, world!");
-  
   lfsr = myRandom16();
-
-  pinMode(led, OUTPUT);
-
-  pinMode(button, INPUT);
-  
-  digitalWrite(led, LOW);
 
   RFduinoBLE.advertisementData = "open LAB";
 
@@ -408,7 +448,6 @@ void setup() {
 
   //prekey(256,4);
   write();
-  
 }
 
 bool interrupting(){
@@ -423,21 +462,29 @@ bool interrupting(){
 }
 
 void loop() {
+ 
+  //RFduinoBLE_ULPDelay(INFINITE); 
+  delay(500);
   
-  RFduino_ULPDelay(INFINITE); 
-
   if(interrupting()){
-    Serial.println("interrupting");
+
+    #ifdef __PRINT_LOG__
+      Serial.println("interrupting");
+    #endif //__PRINT_LOG__
+
     save_config(false);
     add_device_pending=false;
     RFduinoBLE.begin();
+    print_lcd_message(MESSAGE_DEFAULT,"");
   }
   
 }
 
 void interrupt(){
 
-  Serial.println("interrupt()");
+  #ifdef __PRINT_LOG__
+    Serial.println("interrupt()");
+  #endif //__PRINT_LOG__
 
   NRF_GPIO->PIN_CNF[interupt_pin] = (GPIO_PIN_CNF_PULL_Pullup<<GPIO_PIN_CNF_PULL_Pos);
 
@@ -463,7 +510,11 @@ void motor_process()
 }
 
 void RFduinoBLE_onDisconnect(){
-  Serial.println("onDisconnect");
+
+  #ifdef __PRINT_LOG__
+    Serial.println("onDisconnect");
+  #endif //__PRINT_LOG__
+
   use_local_keys=true;
   free(response);
   response=0;
@@ -486,13 +537,19 @@ void sendCommandStatus(int cmd, bool status){
 void sendCommandFailure(){
   char req[1]={0};
   sprintf(req, "%c", COMMAND_FAILURE);
-  Serial.println("send association failure");
+
+  #ifdef __PRINT_LOG__
+    Serial.println("send association failure");
+  #endif //__PRINT_LOG__
+
   RFduinoBLE.send(req,2);
 }
 
 void processEncryptedResponse(byte * check){
 
-  Serial.println(COMMAND_STRING_ENUM[cmd]);
+  #ifdef __PRINT_LOG__
+    Serial.println(COMMAND_STRING_ENUM[cmd]);
+  #endif //__PRINT_LOG__
 
   if (strlen(token) == 0){
     switch(cmd){
@@ -525,23 +582,12 @@ void generate_key(byte * code,byte * key){
   uint8_t j = 2;
   uint8_t k = 0;
 
-  Serial.print("lfsr : ");
-  Serial.println(lfsr);
   for (int i = 0; i  < 16;i++){
 
     if (i!=0 && ((i%4)==0)){
 
-      Serial.print("test : ");
-      Serial.print((int)code[j]);
-      Serial.print( " et ");
-      Serial.println((int)code[j+1]);
-
       lfsr = (code[j]<<8) + code[j+1];
       j+=2;
-      Serial.print("lfsr : ");
-      Serial.print(lfsr);
-      Serial.print(" for index ");
-      Serial.println(i);
     }
     uint16_t bit  = ((lfsr >> 0) ^ (lfsr >> 2) ^ (lfsr >> 3) ^ (lfsr >> 5) ) & 1;
     lfsr =  (lfsr >> 1) | (bit << 15);
@@ -550,8 +596,6 @@ void generate_key(byte * code,byte * key){
     k++;
     key[k] = (lfsr & 0x00FF)>>0;
     k++;
-    Serial.print("lfsr2 : ");
-    Serial.print(lfsr);
   }
 }
 
@@ -587,7 +631,10 @@ void generateRandomKeys(){
 
   char tokenStr[16];
   sprintf(tokenStr, "%04x%04x%04x%04x", lfsr1, lfsr2,lfsr3,lfsr4);
-  Serial.println(tokenStr);
+
+  #ifdef __PRINT_LOG__
+    Serial.println(tokenStr);
+  #endif //__PRINT_LOG__
 
   byte code[8];
   code[0]=((lfsr1 & 0xFF00)>>8);
@@ -602,56 +649,65 @@ void generateRandomKeys(){
   generate_key(code,external_key);
   generate_iv(code,external_iv);
 
-  Serial.println("code : ");
-  for (int i = 0 ; i < 8;i++){
-    Serial.print (code[i]>>4, HEX) ; Serial.print (code[i]&15, HEX) ; Serial.print (" ") ;
-    if ((i!=0) && (i%15==0)){
-      Serial.println("");
+  #ifdef __PRINT_LOG__
+    Serial.println("code : ");
+    for (int i = 0 ; i < 8;i++){
+      Serial.print (code[i]>>4, HEX) ; Serial.print (code[i]&15, HEX) ; Serial.print (" ") ;
+      if ((i!=0) && (i%15==0)){
+        Serial.println("");
+      }
     }
-  }
-  Serial.println("");
+    Serial.println("");
 
-  Serial.println("key2 : ");
-  for (int i = 0 ; i < 32;i++){
-    Serial.print (external_key[i]>>4, HEX) ; Serial.print (external_key[i]&15, HEX) ; Serial.print (" ") ;
-    if ((i!=0) && (i%15==0)){
-      Serial.println("");
+    Serial.println("key2 : ");
+    for (int i = 0 ; i < 32;i++){
+      Serial.print (external_key[i]>>4, HEX) ; Serial.print (external_key[i]&15, HEX) ; Serial.print (" ") ;
+      if ((i!=0) && (i%15==0)){
+        Serial.println("");
+      }
     }
-  }
-  Serial.println("");
+    Serial.println("");
 
-  Serial.println("iv2 : ");
-  for (int i = 0 ; i < 16;i++){
-    Serial.print (external_iv[i]>>4, HEX) ; Serial.print (external_iv[i]&15, HEX) ; Serial.print (" ") ;
-    if ((i!=0) && (i%15==0)){
-      Serial.println("");
+    Serial.println("iv2 : ");
+    for (int i = 0 ; i < 16;i++){
+      Serial.print (external_iv[i]>>4, HEX) ; Serial.print (external_iv[i]&15, HEX) ; Serial.print (" ") ;
+      if ((i!=0) && (i%15==0)){
+        Serial.println("");
+      }
     }
-  }
-  Serial.println("");
+    Serial.println("");
+  #endif //__PRINT_LOG__
+
+  print_lcd_message("pairing code :",tokenStr);
 }
 
 void processEncryptedFrame(byte * check){
 
   if (strlen(token) == 0){
-    Serial.println("no token");
+
+    #ifdef __PRINT_LOG__
+      Serial.println("no token");
+    #endif //__PRINT_LOG__
+
+    print_lcd_message("command failure:","no token sent");
+
     sendCommandStatus(COMMAND_PUSH,false);
     return;
   }
 
   char device_id[8];
-  Serial.print("device id : ");
+
   for (int i = 0; i< 8;i++){
     device_id[i] = check[i];
-    Serial.print((uint8_t)device_id[i]);
-    Serial.print(" ");
   }
-  Serial.println("");
 
   char * xor_key = is_associated(device_id);
 
   if (xor_key!=0){
 
-    Serial.println("device associated, continuing ...");
+    #ifdef __PRINT_LOG__
+      Serial.println("device associated, continuing ...");
+    #endif //__PRINT_LOG__
 
     char xored_hash[28];
     for (int i = 8;i < 36;i++){
@@ -660,18 +716,21 @@ void processEncryptedFrame(byte * check){
 
     char xor_decoded[28];
 
-    Serial.println("xor decoded : ");
+    
     for (int j = 0 ;j  < 28;j++){
       xor_decoded[j]=xored_hash[j]^xor_key[j];
     }
 
-    for (int i = 0; i < 8;i++){
-      Serial.print((int)xor_decoded[i]);
-      Serial.print("=>");
-      Serial.print((int)token[i]);
-      Serial.print(" ");
-    }
-    Serial.println("");
+    #ifdef __PRINT_LOG__
+      Serial.println("xor decoded : ");
+      for (int i = 0; i < 8;i++){
+        Serial.print((int)xor_decoded[i]);
+        Serial.print("=>");
+        Serial.print((int)token[i]);
+        Serial.print(" ");
+      }
+      Serial.println("");
+    #endif //__PRINT_LOG__
 
     if (memcmp(token,xor_decoded,8)==0){
 
@@ -679,16 +738,12 @@ void processEncryptedFrame(byte * check){
 
       char sent_pass[64];
 
-      Serial.println("sent_pass :");
       for (int i = 8;i<28;i++){
         sent_pass[i-8] = xor_decoded[i];
-        Serial.print(sent_pass[i-8]);
-        Serial.print(" ");
       }
       for (int i = 20;i<64;i++){
         sent_pass[i]=0;
       }
-      Serial.println("");
 
       //decrypt current pass
       byte pass[64];
@@ -710,19 +765,26 @@ void processEncryptedFrame(byte * check){
         switch (cmd){
           case COMMAND_PUSH:
           {
-            Serial.println("push success");
+            #ifdef __PRINT_LOG__
+              Serial.println("push success");
+            #endif //__PRINT_LOG__
+
+            print_lcd_message("command status :","push success");
+
             sendCommandStatus(COMMAND_PUSH,true);
-            digitalWrite(led, HIGH);
             s1.attach(2);
             motor_process();
             s1.detach();
-            digitalWrite(led, LOW);
             break;
           }
           case COMMAND_SET_PASSWORD:
           {
             generateRandomKeys();
-            Serial.println("set password request success");
+
+            #ifdef __PRINT_LOG__
+              Serial.println("set password request success");
+            #endif //__PRINT_LOG__
+
             use_local_keys= false;
             char buf[3]={0};
             sprintf(buf, "%c:%c", COMMAND_SET_PASSWORD, 2);
@@ -732,7 +794,11 @@ void processEncryptedFrame(byte * check){
           case COMMAND_SET_KEY:
           {
             generateRandomKeys();
-            Serial.println("set keys request success");
+
+            #ifdef __PRINT_LOG__
+              Serial.println("set keys request success");
+            #endif //__PRINT_LOG__
+
             use_local_keys= false;
             char buf[3]={0};
             sprintf(buf, "%c:%c", COMMAND_SET_KEY, 2);
@@ -741,7 +807,12 @@ void processEncryptedFrame(byte * check){
           }
           case COMMAND_DISASSOCIATION:
           {
-            Serial.println("disassociation success");
+            #ifdef __PRINT_LOG__
+              Serial.println("disassociation success");
+            #endif //__PRINT_LOG__
+
+            print_lcd_message("command status :","unpairing OK");
+
             remove_device(device_id);
             char buf[3]={0};
             sprintf(buf, "%c:%c", COMMAND_DISASSOCIATION, 0);
@@ -750,34 +821,55 @@ void processEncryptedFrame(byte * check){
         }
       }
       else{
-        Serial.println("cmd failure : bad pass");
+
+        print_lcd_message("command failure:","bad password");
+
+        #ifdef __PRINT_LOG__
+          Serial.println("cmd failure : bad pass");
+        #endif //__PRINT_LOG__
+
         sendCommandStatus(cmd,false);
       } 
     }
     else{
+
+      print_lcd_message("command failure:","bad token");
+
       memset(token, 0, 8);
-      Serial.println("cmd failure : bad token");
+
+      #ifdef __PRINT_LOG__
+        Serial.println("cmd failure : bad token");
+      #endif //__PRINT_LOG__
+
       sendCommandStatus(cmd,false);
     }
   }
   else{
-    Serial.println("device not associated, aborting ...");
+
+    print_lcd_message("command failure:","not associated");
+
+    #ifdef __PRINT_LOG__
+      Serial.println("device not associated, aborting ...");
+    #endif //__PRINT_LOG__
+
     sendCommandStatus(cmd,false);
   }
 }
 
 void executeCmd(byte *check){
 
-  for (byte ph = 0; ph < (4*16); ph++){
-    Serial.print (check[ph]>>4, HEX) ; Serial.print (check[ph]&15, HEX) ; Serial.print (" ") ;
-    if ((ph!=0) && (ph%15==0)){
-      Serial.println("");
+  #ifdef __PRINT_LOG__
+    for (byte ph = 0; ph < (4*16); ph++){
+      Serial.print (check[ph]>>4, HEX) ; Serial.print (check[ph]&15, HEX) ; Serial.print (" ") ;
+      if ((ph!=0) && (ph%15==0)){
+        Serial.println("");
+      }
     }
-  }
 
-  Serial.println("");
-  Serial.print(COMMAND_STRING_ENUM[cmd]);
-  Serial.println(" processing ...");
+    Serial.println("");
+    Serial.print(COMMAND_STRING_ENUM[cmd]);
+    Serial.println(" processing ...");
+  #endif //__PRINT_LOG__
 
   switch(cmd){
 
@@ -789,18 +881,19 @@ void executeCmd(byte *check){
       }
 
       char device_id[8];
-      Serial.print("device id : ");
+
       for (int i = 0; i< 8;i++){
         device_id[i] = check[i];
-        Serial.print((uint8_t)device_id[i]);
-        Serial.print(" ");
       }
-      Serial.println("");
 
       char * xor_key = is_associated(device_id);
 
       if (xor_key!=0){
-        Serial.println("device associated, continuing ...");
+
+        #ifdef __PRINT_LOG__
+          Serial.println("device associated, continuing ...");
+        #endif //__PRINT_LOG__
+
         char xored_token[8];
         for (int i = 8;i < 16;i++){
           xored_token[i-8] = check[i];
@@ -808,98 +901,114 @@ void executeCmd(byte *check){
 
         char xor_decoded[8];
 
-        Serial.println("xor decoded : ");
         for (int j = 0 ;j  < 8;j++){
           xor_decoded[j]=xored_token[j]^xor_key[j];
-          Serial.print((int)xor_decoded[j]);
-          Serial.print("=>");
-          Serial.print((int)token[j]);
-          Serial.print(" ");
         }
-        Serial.println("");
 
         if (memcmp(token,xor_decoded,8)==0){
           memset(token, 0, 8);
-          Serial.println("association status successfully requested");
+
+          #ifdef __PRINT_LOG__
+            Serial.println("association status successfully requested");
+          #endif //__PRINT_LOG__
           sendCommandStatus(COMMAND_ASSOCIATION_STATUS,true);
         }
         else{
           memset(token, 0, 8);
-          Serial.println("association status failure : not associated");
+
+          #ifdef __PRINT_LOG__
+            Serial.println("association status failure : not associated");
+          #endif //__PRINT_LOG__
           sendCommandStatus(COMMAND_ASSOCIATION_STATUS,false);
         }
       }
       else{
-        Serial.println("device not associated, aborting ...");
+        #ifdef __PRINT_LOG__
+          Serial.println("device not associated, aborting ...");
+        #endif //__PRINT_LOG__
         sendCommandStatus(COMMAND_ASSOCIATION_STATUS,false);
       }
       break;
     }
     case COMMAND_PUSH:
     {
-      Serial.println("processing push...");
+      #ifdef __PRINT_LOG__
+        Serial.println("processing push...");
+      #endif //__PRINT_LOG__
       processEncryptedFrame(check);
       break;
     }
     case COMMAND_SET_PASSWORD:
     {
-      Serial.println("processing set password...");
+      #ifdef __PRINT_LOG__
+        Serial.println("processing set password...");
+      #endif //__PRINT_LOG__
       processEncryptedFrame(check);
       break;
     }
     case COMMAND_SET_KEY:
     {
-      Serial.println("processing set keys...");
+      #ifdef __PRINT_LOG__
+        Serial.println("processing set keys...");
+      #endif //__PRINT_LOG__
       processEncryptedFrame(check);
       break;
     }
     case COMMAND_DISASSOCIATION:
     {
-      Serial.println("processing disassociation...");
+      #ifdef __PRINT_LOG__
+        Serial.println("processing disassociation...");
+      #endif //__PRINT_LOG__
       processEncryptedFrame(check);
       break;
     }
     case COMMAND_SET_PASSWORD_RESPONSE:
     {
       if (strlen(token) == 0){
-        Serial.println("no token");
+        #ifdef __PRINT_LOG__
+          Serial.println("no token");
+        #endif //__PRINT_LOG__
+
+        print_lcd_message("command failure:","token required");
+
         sendCommandStatus(COMMAND_PUSH,false);
         return;
       }
 
       char device_id[8];
-      Serial.print("device id : ");
       for (int i = 0; i< 8;i++){
         device_id[i] = check[i];
-        Serial.print((uint8_t)device_id[i]);
-        Serial.print(" ");
       }
-      Serial.println("");
 
       char * xor_key = is_associated(device_id);
 
       if (xor_key!=0){
 
-        Serial.println("device associated, continuing ...");
-        
+        #ifdef __PRINT_LOG__
+          Serial.println("device associated, continuing ...");
+        #endif //__PRINT_LOG__
+
         char xored_hash[56];
         for (int i = 8;i < 64;i++){
           xored_hash[i-8] = check[i];
         }
 
         char xor_decoded[28];
-        Serial.println("xor decoded : ");
+
         for (int j = 0 ;j  < 28;j++){
           xor_decoded[j]=xored_hash[j]^xor_key[j];
         }
 
-        for (int i = 0; i < 8;i++){
-          Serial.print((int)xor_decoded[i]);
-          Serial.print("=>");
-          Serial.print((int)token[i]);
-          Serial.print(" ");
-        }
-        Serial.println("");
+        #ifdef __PRINT_LOG__
+          Serial.println("xor decoded : ");
+          for (int i = 0; i < 8;i++){
+            Serial.print((int)xor_decoded[i]);
+            Serial.print("=>");
+            Serial.print((int)token[i]);
+            Serial.print(" ");
+          }
+          Serial.println("");
+        #endif //__PRINT_LOG__
 
         if (memcmp(token,xor_decoded,8)==0){
 
@@ -935,55 +1044,76 @@ void executeCmd(byte *check){
             config.pass[i]=cipher[i];
           }
 
-          for (byte i = 0; i < (4*N_BLOCK); i++){
-            Serial.print (cipher[i]>>4, HEX) ; Serial.print (cipher[i]&15, HEX) ; Serial.print (" ") ;
-          }
-          Serial.println();
+          #ifdef __PRINT_LOG__
+            for (byte i = 0; i < (4*N_BLOCK); i++){
+              Serial.print (cipher[i]>>4, HEX) ; Serial.print (cipher[i]&15, HEX) ; Serial.print (" ") ;
+            }
+            Serial.println();
+          #endif //__PRINT_LOG__
 
           for (int i =0;i<64;i++){
             config.pass[i]=cipher[i];
           }
 
-          Serial.println("set password success");
+          #ifdef __PRINT_LOG__
+            Serial.println("set password success");
+          #endif //__PRINT_LOG__
+
+          print_lcd_message("command status :","set pwd success");
+
           sendCommandStatus(cmd,true);
         }
         else{
           memset(token, 0, 8);
-          Serial.println("cmd failure : bad token");
+          #ifdef __PRINT_LOG__
+            Serial.println("cmd failure : bad token");
+          #endif //__PRINT_LOG__
+
+          print_lcd_message("command failure:","bad token");
+
           sendCommandStatus(cmd,false);
         }
       }
       else{
-        Serial.println("device not associated, aborting ...");
+        #ifdef __PRINT_LOG__
+          Serial.println("device not associated, aborting ...");
+        #endif //__PRINT_LOG__
+
+        print_lcd_message("command failure:","not associated");
+
         sendCommandStatus(cmd,false);
       }
       break;
     }
     case COMMAND_SET_KEYS_RESPONSE:
     {
-      Serial.println("processing set keys");
+      #ifdef __PRINT_LOG__
+        Serial.println("processing set keys");
+      #endif //__PRINT_LOG__
 
       if (strlen(token) == 0){
-        Serial.println("no token");
+        #ifdef __PRINT_LOG__
+          Serial.println("no token");
+        #endif //__PRINT_LOG__
+
+        print_lcd_message("command failure:","no token");
         sendCommandStatus(COMMAND_PUSH,false);
         return;
       }
 
       char device_id[8];
-      Serial.print("device id : ");
       for (int i = 0; i< 8;i++){
         device_id[i] = check[i];
-        Serial.print((uint8_t)device_id[i]);
-        Serial.print(" ");
       }
-      Serial.println("");
 
       char * xor_key = is_associated(device_id);
 
       if (xor_key!=0){
 
-        Serial.println("device associated, continuing ...");
-        
+        #ifdef __PRINT_LOG__
+          Serial.println("device associated, continuing ...");
+        #endif //__PRINT_LOG__
+
         char xored_hash[64];
         for (int i = 8;i < 64;i++){
           xored_hash[i-8] = check[i];
@@ -991,7 +1121,6 @@ void executeCmd(byte *check){
 
         char xor_decoded[64];
 
-        Serial.println("xor decoded : ");
         for (int j = 0 ;j  < 32;j++){
           xor_decoded[j]=xored_hash[j]^xor_key[j];
         }
@@ -999,13 +1128,16 @@ void executeCmd(byte *check){
           xor_decoded[j]=xored_hash[j]^xor_key[j-32];
         }
 
-        for (int i = 0; i < 8;i++){
-          Serial.print((int)xor_decoded[i]);
-          Serial.print("=>");
-          Serial.print((int)token[i]);
-          Serial.print(" ");
-        }
-        Serial.println("");
+        #ifdef __PRINT_LOG__
+          Serial.println("xor decoded : ");
+          for (int i = 0; i < 8;i++){
+            Serial.print((int)xor_decoded[i]);
+            Serial.print("=>");
+            Serial.print((int)token[i]);
+            Serial.print(" ");
+          }
+          Serial.println("");
+        #endif //__PRINT_LOG__
 
         if (memcmp(token,xor_decoded,8)==0){
 
@@ -1025,7 +1157,10 @@ void executeCmd(byte *check){
           succ = aes.cbc_decrypt(cipher, pass, 4, iv) ;
 
           memset(token, 0, 8);
-          Serial.println("SET KEYS OK");
+
+          #ifdef __PRINT_LOG__
+            Serial.println("SET KEYS OK");
+          #endif //__PRINT_LOG__
 
           for (int i = 0; i < 32;i++){
             config.key[i]=xor_decoded[i+8];
@@ -1046,18 +1181,29 @@ void executeCmd(byte *check){
             config.pass[i]=cipher[i];
           }
 
-          Serial.println("set key success");
-          Serial.println(cmd);
+          #ifdef __PRINT_LOG__
+            Serial.println("set key success");
+            Serial.println(cmd);
+          #endif //__PRINT_LOG__
+            
+          print_lcd_message("command status :","set keys success");
+
           sendCommandStatus(cmd,true);
         }
         else{
           memset(token, 0, 8);
-          Serial.println("cmd failure : bad token");
+          #ifdef __PRINT_LOG__
+            Serial.println("cmd failure : bad token");
+          #endif //__PRINT_LOG__
+          print_lcd_message("command failure:","bad token");
           sendCommandStatus(cmd,false);
         }
       }
       else{
-        Serial.println("device not associated, aborting ...");
+        #ifdef __PRINT_LOG__
+          Serial.println("device not associated, aborting ...");
+        #endif //__PRINT_LOG__ 
+        print_lcd_message("command failure:","not asscociated");
         sendCommandStatus(cmd,false);
       }
 
@@ -1065,7 +1211,9 @@ void executeCmd(byte *check){
     }
     case COMMAND_ASSOCIATE_RESPONSE:
     {
-      Serial.println("processing associate response");
+      #ifdef __PRINT_LOG__
+        Serial.println("processing associate response");
+      #endif //__PRINT_LOG__ 
 
       if (strlen(token) == 0){
         sendCommandStatus(COMMAND_ASSOCIATE,false);
@@ -1073,36 +1221,31 @@ void executeCmd(byte *check){
       }
 
       char device_id[8];
-      Serial.print("device id : ");
+
       for (int i = 0; i< 8;i++){
         device_id[i] = check[i];
-        Serial.print((uint8_t)device_id[i]);
-        Serial.print(" ");
       }
-      Serial.println("");
 
       char xor_key[32];
-      Serial.print("xor key : ");
+
       for (int i = 0; i< 32;i++){
         xor_key[i] = check[i+8];
-        Serial.print((uint8_t)xor_key[i]);
-        Serial.print(" ");
       }
-      Serial.println("");
 
       char token_field[8];
-      Serial.print("token : ");
+
       for (int i = 0; i< 8;i++){
         token_field[i] = check[i+8+32];
-        Serial.print((uint8_t)token_field[i]);
-        Serial.print(" ");
       }
-      Serial.println("");
 
       if (memcmp(token,token_field,8)==0){
         
         memset(token, 0, 8);
-        Serial.println("association success");
+
+        #ifdef __PRINT_LOG__
+          Serial.println("association success");
+        #endif //__PRINT_LOG__ 
+
         //record xor / device id
         add_device(device_id,xor_key);
         
@@ -1122,26 +1265,28 @@ void executeCmd(byte *check){
           iv_data[i] = 0;
         }
 
-        Serial.println("CURRENT KEY");
-        for (byte i = 0; i < 32; i++){
-          Serial.print (key_data[i]>>4, HEX) ; Serial.print (key_data[i]&15, HEX) ; Serial.print (" ") ;
-        }
-        Serial.println();
-        Serial.println("CURRENT IV");
-        for (byte i = 0; i < 16; i++){
-          Serial.print (iv_data[i]>>4, HEX) ; Serial.print (iv_data[i]&15, HEX) ; Serial.print (" ") ;
-        }
+        #ifdef __PRINT_LOG__
+          Serial.println("CURRENT KEY");
+          for (byte i = 0; i < 32; i++){
+            Serial.print (key_data[i]>>4, HEX) ; Serial.print (key_data[i]&15, HEX) ; Serial.print (" ") ;
+          }
+          Serial.println();
+          Serial.println("CURRENT IV");
+          for (byte i = 0; i < 16; i++){
+            Serial.print (iv_data[i]>>4, HEX) ; Serial.print (iv_data[i]&15, HEX) ; Serial.print (" ") ;
+          }
 
-        Serial.println("EXTERNAL KEY");
-        for (byte i = 0; i < 32; i++){
-          Serial.print (external_key[i]>>4, HEX) ; Serial.print (external_key[i]&15, HEX) ; Serial.print (" ") ;
-        }
-        Serial.println();
-        Serial.println("EXTERNAL IV");
-        for (byte i = 0; i < 16; i++){
-          Serial.print (external_iv[i]>>4, HEX) ; Serial.print (external_iv[i]&15, HEX) ; Serial.print (" ") ;
-        }
-        Serial.println();
+          Serial.println("EXTERNAL KEY");
+          for (byte i = 0; i < 32; i++){
+            Serial.print (external_key[i]>>4, HEX) ; Serial.print (external_key[i]&15, HEX) ; Serial.print (" ") ;
+          }
+          Serial.println();
+          Serial.println("EXTERNAL IV");
+          for (byte i = 0; i < 16; i++){
+            Serial.print (external_iv[i]>>4, HEX) ; Serial.print (external_iv[i]&15, HEX) ; Serial.print (" ") ;
+          }
+          Serial.println();
+        #endif //__PRINT_LOG__ 
 
         byte succ = aes.set_key (external_key, 256);
 
@@ -1159,11 +1304,14 @@ void executeCmd(byte *check){
         }
         //decrypt
         succ = aes.cbc_decrypt(cipher, check, 4, iv) ;
-        Serial.println("DECRYPT KEY");
-        for (byte i = 0; i < 64; i++){
-          Serial.print (check[i]>>4, HEX) ; Serial.print (check[i]&15, HEX) ; Serial.print (" ") ;
-        }
-        Serial.println();
+
+        #ifdef __PRINT_LOG__
+          Serial.println("DECRYPT KEY");
+          for (byte i = 0; i < 64; i++){
+            Serial.print (check[i]>>4, HEX) ; Serial.print (check[i]&15, HEX) ; Serial.print (" ") ;
+          }
+          Serial.println();
+        #endif //__PRINT_LOG__ 
 
         state = STATE_SENDING;
         data_length = 128;
@@ -1171,10 +1319,8 @@ void executeCmd(byte *check){
         memset(response, 0, data_length + 1);
 
         for (byte i = 0; i < 64; i++){
-          Serial.print (cipher[i]>>4, HEX) ; Serial.print (cipher[i]&15, HEX) ; Serial.print (" ") ;
           response[i]=cipher[i];
         }
-        Serial.println();
 
         for (byte i = 0 ; i < N_BLOCK ; i++){
           iv[i] = external_iv[i] ;
@@ -1186,33 +1332,24 @@ void executeCmd(byte *check){
         }
         //decrypt
         succ = aes.cbc_decrypt(cipher, check, 4, iv) ;
-        Serial.println("DECRYPT IV");
-        for (byte i = 0; i < 64; i++){
-          Serial.print (check[i]>>4, HEX) ; Serial.print (check[i]&15, HEX) ; Serial.print (" ") ;
-        }
-        Serial.println();
-
 
          for (byte i = 0; i < 64; i++){
-          Serial.print (cipher[i]>>4, HEX) ; Serial.print (cipher[i]&15, HEX) ; Serial.print (" ") ;
           response[i+64]=cipher[i];
         }
-        Serial.println();
 
         sending_index=0;
-        
-        Serial.println(data_length);
 
         char req[10]={0};
         sprintf(req, "%c:%c:%d", COMMAND_ASSOCIATE_RESPONSE, STATE_SENDING,data_length);
-        Serial.print("sending : ");
-        Serial.println(req);
         RFduinoBLE.send(req,10);
 
       }
       else{
         memset(token, 0, 8);
-        Serial.println("association failure : not associated");
+        #ifdef __PRINT_LOG__
+          Serial.println("association failure : not associated");
+        #endif //__PRINT_LOG__ 
+        print_lcd_message("command failure:","not asscociated");
         sendCommandStatus(COMMAND_ASSOCIATE,false);
       }
 
@@ -1223,7 +1360,9 @@ void executeCmd(byte *check){
 
 void processHeaderFrame(int cmd,char *data, int len){
 
-  Serial.println(COMMAND_STRING_ENUM[cmd]);
+  #ifdef __PRINT_LOG__
+    Serial.println(COMMAND_STRING_ENUM[cmd]);
+  #endif //__PRINT_LOG__ 
 
   if (len>1){
     state = STATE_PROCESSING;
@@ -1231,18 +1370,24 @@ void processHeaderFrame(int cmd,char *data, int len){
     payload = (uint8_t*)malloc(data_length + 1);
     memset(payload, 0, data_length + 1);
 
-    Serial.print("cmd: ");
-    Serial.println(cmd);
-    Serial.print("data_length: ");
-    Serial.println(data_length);
+    #ifdef __PRINT_LOG__
+      Serial.print("cmd: ");
+      Serial.println(cmd);
+      Serial.print("data_length: ");
+      Serial.println(data_length);
+    #endif //__PRINT_LOG__
   }
   else{
-    Serial.print("error length error for ");
-    Serial.println(COMMAND_STRING_ENUM[cmd]);
+    #ifdef __PRINT_LOG__
+      Serial.print("error length error for ");
+      Serial.println(COMMAND_STRING_ENUM[cmd]);
+    #endif //__PRINT_LOG__
   }
 }
 
 void RFduinoBLE_onReceive(char *data, int len){
+
+  //lcd.print("test");
 
   switch (state){
 
@@ -1254,9 +1399,11 @@ void RFduinoBLE_onReceive(char *data, int len){
     
       cmd = data[0];
 
-      Serial.print("receive command ");
-      Serial.print(cmd);
-      Serial.print(" ");
+      #ifdef __PRINT_LOG__
+        Serial.print("receive command ");
+        Serial.print(cmd);
+        Serial.print(" ");
+      #endif //__PRINT_LOG__
 
       uint8_t ret = 0;
 
@@ -1264,7 +1411,9 @@ void RFduinoBLE_onReceive(char *data, int len){
 
         case COMMAND_GET_TOKEN:
         {
-          Serial.println(COMMAND_STRING_ENUM[cmd]);
+          #ifdef __PRINT_LOG__
+            Serial.println(COMMAND_STRING_ENUM[cmd]);
+          #endif //__PRINT_LOG__
 
           uint16_t lfsr1 = random();
           uint16_t lfsr2 = random();
@@ -1285,8 +1434,11 @@ void RFduinoBLE_onReceive(char *data, int len){
           token[6]=((lfsr4 & 0xFF00)>>8);
           token[7]=((lfsr4 & 0x00FF)>>0);
 
-          Serial.print("send token : ");
-          Serial.println(tokenStr);
+          #ifdef __PRINT_LOG__
+            Serial.print("send token : ");
+            Serial.println(tokenStr);
+          #endif //__PRINT_LOG__
+
           ret=1;
           RFduinoBLE.send(buf,20);
           break;
@@ -1333,7 +1485,9 @@ void RFduinoBLE_onReceive(char *data, int len){
         }
         case COMMAND_ASSOCIATE:
         {
-          Serial.println(COMMAND_STRING_ENUM[cmd]);
+          #ifdef __PRINT_LOG__
+            Serial.println(COMMAND_STRING_ENUM[cmd]);
+          #endif //__PRINT_LOG__
 
           generateRandomKeys();
 
@@ -1347,18 +1501,23 @@ void RFduinoBLE_onReceive(char *data, int len){
         }
         case COMMAND_RECEIVE_KEYS:
         {
-          Serial.println("sending keys");
+          #ifdef __PRINT_LOG__
+            Serial.println("sending keys");
+          #endif //__PRINT_LOG__
+
           char buf[18]={0};
           int diff = data_length-sending_index;
-          Serial.println(diff);
 
           if (diff<=18){
-            Serial.println("sending last frame");
+            
+            #ifdef __PRINT_LOG__
+              Serial.println("sending last frame");
+            #endif //__PRINT_LOG__
 
             for (int i = 0;i < diff;i++){
               buf[i]=response[i+sending_index];
             }
-            Serial.println(data_length-sending_index);
+  
             RFduinoBLE.send(buf,(data_length-sending_index));
             sending_index=0;
             free(response);
@@ -1382,22 +1541,28 @@ void RFduinoBLE_onReceive(char *data, int len){
         payload[offset+i] = data[i];
       }
       offset+=len;
-      Serial.print("length: ");
-      Serial.println(data_length);
-      Serial.print("offset: ");
-      Serial.println(offset);
+
+      #ifdef __PRINT_LOG__
+        Serial.print("length: ");
+        Serial.println(data_length);
+        Serial.print("offset: ");
+        Serial.println(offset);
+      #endif //__PRINT_LOG__
 
       if (offset==data_length){
-        Serial.println("complete");
-        for (int i = 0;i < data_length;i++){
-          Serial.print (payload[i]>>4, HEX) ; Serial.print (payload[i]&15, HEX) ; Serial.print (" ") ;
-          if ((i!=0) && (i%15==0)){
-            Serial.println("");
-          }
-        }
 
-        Serial.println("");
-        Serial.println("decrypting...");
+        #ifdef __PRINT_LOG__
+          Serial.println("complete");
+          for (int i = 0;i < data_length;i++){
+            Serial.print (payload[i]>>4, HEX) ; Serial.print (payload[i]&15, HEX) ; Serial.print (" ") ;
+            if ((i!=0) && (i%15==0)){
+              Serial.println("");
+            }
+          }
+
+          Serial.println("");
+          Serial.println("decrypting...");
+        #endif //__PRINT_LOG__
 
         byte cipher [4*N_BLOCK] ;
         byte check [4*N_BLOCK] ;
@@ -1416,9 +1581,11 @@ void RFduinoBLE_onReceive(char *data, int len){
 
         uint16_t block_num=data_length/16 + remain;
 
-        Serial.print("number of block: ");
-        Serial.println(block_num);
-        
+        #ifdef __PRINT_LOG__
+          Serial.print("number of block: ");
+          Serial.println(block_num);
+        #endif //__PRINT_LOG__
+
         byte iv[N_BLOCK];
 
         if (use_local_keys){
@@ -1430,25 +1597,27 @@ void RFduinoBLE_onReceive(char *data, int len){
         }
         else{
           
-          Serial.println("decrypting with external keys");
+          #ifdef __PRINT_LOG__
+            Serial.println("decrypting with external keys");
 
-          Serial.println("key2 : ");
-          for (int i = 0 ; i < 32;i++){
-            Serial.print (external_key[i]>>4, HEX) ; Serial.print (external_key[i]&15, HEX) ; Serial.print (" ") ;
-            if ((i!=0) && (i%15==0)){
-              Serial.println("");
+            Serial.println("key2 : ");
+            for (int i = 0 ; i < 32;i++){
+              Serial.print (external_key[i]>>4, HEX) ; Serial.print (external_key[i]&15, HEX) ; Serial.print (" ") ;
+              if ((i!=0) && (i%15==0)){
+                Serial.println("");
+              }
             }
-          }
-          Serial.println("");
+            Serial.println("");
 
-          Serial.println("iv2 : ");
-          for (int i = 0 ; i < 16;i++){
-            Serial.print (external_iv[i]>>4, HEX) ; Serial.print (external_iv[i]&15, HEX) ; Serial.print (" ") ;
-            if ((i!=0) && (i%15==0)){
-              Serial.println("");
+            Serial.println("iv2 : ");
+            for (int i = 0 ; i < 16;i++){
+              Serial.print (external_iv[i]>>4, HEX) ; Serial.print (external_iv[i]&15, HEX) ; Serial.print (" ") ;
+              if ((i!=0) && (i%15==0)){
+                Serial.println("");
+              }
             }
-          }
-          Serial.println("");
+            Serial.println("");
+          #endif //__PRINT_LOG__
 
           succ = aes.set_key (external_key, 256);
 
