@@ -2,9 +2,9 @@
 #include <Servo.h>
 #include <RFduinoBLE.h>
 #include <string>
-#include <LiquidCrystal.h>
+#include <lcd/LiquidCrystal.h>
 
-#include <AES.h>
+#include <aes/AES.h>
 
 #define E(x,y) x = y,
 enum STATE_ENUM {
@@ -38,8 +38,8 @@ struct device
 #define CODE_EXPIRING_TIME_SECONDS 30
 
 device * device_ptr = new device[MAX_ASSOCIATED_DEVICE];
-char token[16];
 
+char token[16];
 uint8_t state = STATE_NONE;
 uint8_t state_count= 0;
 uint8_t cmd = 0;
@@ -509,7 +509,7 @@ void loop() {
     save_config(false);
     add_device_pending=false;
     RFduinoBLE.begin();
-    //print_lcd_message(MESSAGE_DEFAULT,"");
+    print_lcd_message(MESSAGE_DEFAULT,"");
   }
   
   if (code_expiring){
