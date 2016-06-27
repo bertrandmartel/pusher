@@ -115,6 +115,8 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
     private boolean generateDefaultKey = false;
     private BtnPusherInputTask mTask = BtnPusherInputTask.PUSH;
     private boolean sendMessage = false;
+    private boolean displayTopMessage = false;
+    private boolean displayBottomMessage = false;
 
     /*
      * Creates a new pool of Thread objects for the download work queue
@@ -126,8 +128,8 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
      */
     private SharedPreferences sharedPref;
 
-    private String topMessage;
-    private String bottomMessage;
+    private String topMessage = "";
+    private String bottomMessage = "";
 
 
     private String generateXorKey() {
@@ -366,12 +368,16 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
                                             sendMessage = false;
 
-                                            threadPool.execute(new Runnable() {
-                                                @Override
-                                                public void run() {
-                                                    sendCommand(BtnPusherInputTask.MESSAGE);
-                                                }
-                                            });
+                                            if (displayBottomMessage) {
+                                                threadPool.execute(new Runnable() {
+                                                    @Override
+                                                    public void run() {
+                                                        sendCommand(BtnPusherInputTask.MESSAGE);
+                                                    }
+                                                });
+                                            } else {
+                                                mPushListener.onPushSuccess();
+                                            }
                                         }
                                     }
                                 }
@@ -671,8 +677,14 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
     @Override
     public void setMessage(String top, String bottom) {
-        this.topMessage = top;
-        this.bottomMessage = bottom;
+        if (top != null && !top.equals("")) {
+            this.topMessage = top;
+            displayTopMessage = true;
+        }
+        if (bottom != null && !bottom.equals("")) {
+            this.bottomMessage = bottom;
+            displayBottomMessage = true;
+        }
         sendMessage = true;
         sendCommand(BtnPusherInputTask.MESSAGE);
     }
@@ -1038,7 +1050,11 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
                                 break;
                             case MESSAGE:
                                 if (sendMessage) {
-                                    sendBitmap((byte) ButtonPusherCmd.COMMAND_MESSAGE_TOP.ordinal(), buildMessageRequest(mToken, mPassword.getBytes(), topMessage));
+                                    if (displayTopMessage) {
+                                        sendBitmap((byte) ButtonPusherCmd.COMMAND_MESSAGE_TOP.ordinal(), buildMessageRequest(mToken, mPassword.getBytes(), topMessage));
+                                    } else {
+                                        sendBitmap((byte) ButtonPusherCmd.COMMAND_MESSAGE_BOTTOM.ordinal(), buildMessageRequest(mToken, mPassword.getBytes(), bottomMessage));
+                                    }
                                 } else {
                                     sendBitmap((byte) ButtonPusherCmd.COMMAND_MESSAGE_BOTTOM.ordinal(), buildMessageRequest(mToken, mPassword.getBytes(), bottomMessage));
                                 }
