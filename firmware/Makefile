@@ -1,5 +1,12 @@
 PORT=/dev/ttyUSB1
-OBJECTS=rfduino-makefile/RFduino/libraries/RFduinoBLE/RFduinoBLE.o rfduino-makefile/RFduino/libraries/Servo/Servo.o lcd/LiquidCrystal.o main.o aes/AES.o
+
+OBJECTS=rfduino-makefile/RFduino/libraries/RFduinoBLE/RFduinoBLE.o \
+	rfduino-makefile/RFduino/libraries/Servo/Servo.o \
+	lcd/LiquidCrystal.o main.o \
+	aes/AES.o \
+	crypto/crypto.o \
+	config/config.o
+
 HEADERS=-Irfduino-makefile/RFduino/libraries/RFduinoBLE -Irfduino-makefile/RFduino/libraries/Servo -I.
 #CXX_FLAGS=-D __PRINT_LOG__
 
