@@ -1,9 +1,9 @@
 PORT=/dev/ttyUSB1
-OBJECTS=rfduino-makefile/RFduino/libraries/RFduinoBLE/RFduinoBLE.o rfduino-makefile/RFduino/libraries/Servo/Servo.o LiquidCrystal.o main.o AES.o
+OBJECTS=rfduino-makefile/RFduino/libraries/RFduinoBLE/RFduinoBLE.o rfduino-makefile/RFduino/libraries/Servo/Servo.o lcd/LiquidCrystal.o main.o aes/AES.o
 HEADERS=-Irfduino-makefile/RFduino/libraries/RFduinoBLE -Irfduino-makefile/RFduino/libraries/Servo -I.
-CXX_FLAGS=-D __PRINT_LOG__
+#CXX_FLAGS=-D __PRINT_LOG__
 
-export CXX_FLAGS
+#export CXX_FLAGS
 export PORT
 export OBJECTS
 export HEADERS
