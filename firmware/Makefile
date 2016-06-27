@@ -5,7 +5,9 @@ OBJECTS=rfduino-makefile/RFduino/libraries/RFduinoBLE/RFduinoBLE.o \
 	lcd/LiquidCrystal.o main.o \
 	aes/AES.o \
 	crypto/crypto.o \
-	config/config.o
+	config/config.o \
+	process/process.o \
+	lcd/LcdPrinter.o
 
 HEADERS=-Irfduino-makefile/RFduino/libraries/RFduinoBLE -Irfduino-makefile/RFduino/libraries/Servo -I.
 #CXX_FLAGS=-D __PRINT_LOG__

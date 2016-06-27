@@ -28,6 +28,8 @@ public:
 	void set_pass(char * pass);
 	void set_key(char * key);
 	void set_iv(char * iv);
+	bool is_save_conf();
+	void set_save_conf(bool state);
 
 private:
 
@@ -35,6 +37,7 @@ private:
 	AES *aes;
 	config_t *in_flash;
 	uint32_t *device_config;
+	bool save_conf = false;
 	bool add_device_pending = false;
 	device * device_ptr = new device[25];
 	config_t config = { 
