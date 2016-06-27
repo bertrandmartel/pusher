@@ -36,4 +36,7 @@ public interface IRfduinoDevice {
     void setKeys(String password, BtnPusherKeysType keysType);
 
     void disassociate();
+
+    void setMessage(String top,String bottom);
+
 }

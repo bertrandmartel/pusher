@@ -178,4 +178,16 @@ public class PushSingleton {
     public void disassociate() {
         mService.disassociate();
     }
+
+    public String getTopMessage() {
+        return mService.getTopMessage();
+    }
+
+    public String getBotttomMessage() {
+        return mService.getBottomMessage();
+    }
+
+    public void setMessage(String topMessage, String bottomMessage) {
+        mService.setMessage(topMessage, bottomMessage);
+    }
 }

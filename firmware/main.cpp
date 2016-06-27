@@ -34,7 +34,6 @@ struct device
 
 #define LFSR_DEFAULT_VALUE 0xACE1u
 #define MAX_ASSOCIATED_DEVICE 25
-#define MESSAGE_DEFAULT "Have a good day!"
 #define CODE_EXPIRING_TIME_SECONDS 30
 
 device * device_ptr = new device[MAX_ASSOCIATED_DEVICE];
@@ -48,6 +47,7 @@ bool use_local_keys = true;
 uint16_t sending_index = 0;
 bool code_expiring=false;
 unsigned long code_expiring_time=0;
+bool save_conf = false;
 
 AES aes ;
 
@@ -67,6 +67,16 @@ byte default_pass[64] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+char default_top_message[28] = {
+  0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
+char default_bottom_message[28] = {
+  0x48, 0x61, 0x76, 0x65, 0x20, 0x61, 0x20, 0x67, 0x6f, 0x6f, 0x64, 0x20, 0x64, 0x61, 0x79, 0x21,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
 byte external_key[32];
@@ -112,6 +122,8 @@ struct data_t
   uint8_t device_num;
   char key[32];
   char iv[16];
+  char top_message[28];
+  char bottom_message[28];
 };
 
 data_t config = { 
@@ -211,6 +223,12 @@ void save_config(bool default_config){
       }
       for (int i  =0;i< 16;i++){
         config.iv[i]=default_iv[i];
+      }
+      for (int i = 0; i  < 28;i++){
+        config.top_message[i]=default_top_message[i];
+      }
+      for (int i = 0; i  < 28;i++){
+        config.bottom_message[i]=default_bottom_message[i];
       }
     }
     
@@ -406,7 +424,7 @@ void remove_device(char * device_id){
   print_all_config();
 }
 
-void write(){
+void restore(){
  
   in_flash = (data_t*)ADDRESS_OF_PAGE(CONFIG_STORAGE);
 
@@ -444,6 +462,14 @@ void write(){
       config.iv[i]=in_flash->iv[i];
     }
 
+    for (int i = 0; i  < 28;i++){
+      config.bottom_message[i]=in_flash->bottom_message[i];
+    }
+
+    for (int i = 0; i  < 28;i++){
+      config.top_message[i]=in_flash->top_message[i];
+    }
+
     #ifdef __PRINT_LOG__
       Serial.print("encrypted password : ");
       for (byte i = 0; i < (4*N_BLOCK); i++){
@@ -464,6 +490,10 @@ void print_lcd_message(char * header,char * message){
   lcd.print(message);
 }
 
+void print_default_message(){
+  print_lcd_message(config.top_message,config.bottom_message);
+}
+
 void setup() {
 
   #ifdef __PRINT_LOG__
@@ -472,16 +502,15 @@ void setup() {
   
   lcd.begin(16, 2);
 
-  print_lcd_message(MESSAGE_DEFAULT,"");
-
   lfsr = myRandom16();
 
   RFduinoBLE.advertisementData = "open LAB";
 
   RFduinoBLE.begin();
 
-  //prekey(256,4);
-  write();
+  restore();
+
+  print_default_message();
 }
 
 bool interrupting(){
@@ -506,10 +535,14 @@ void loop() {
       Serial.println("interrupting");
     #endif //__PRINT_LOG__
 
-    save_config(false);
+    if (save_conf || add_device_pending){
+      save_config(false);
+      RFduinoBLE.begin();
+    }
+    
+    save_conf=false;
     add_device_pending=false;
-    RFduinoBLE.begin();
-    print_lcd_message(MESSAGE_DEFAULT,"");
+    print_default_message();
   }
   
   if (code_expiring){
@@ -523,8 +556,7 @@ void loop() {
       memset(token, 0, 8);
       memset(external_iv, 0, 16);
       memset(external_key, 0, 32);
-      lcd.clear();
-      lcd.print(MESSAGE_DEFAULT);
+      print_default_message();
     }
   }
 }
@@ -842,6 +874,36 @@ void processEncryptedFrame(byte * check){
             s1.detach();
             break;
           }
+          case COMMAND_MESSAGE_TOP:
+          {
+            #ifdef __PRINT_LOG__
+              Serial.println("set message top success");
+            #endif //__PRINT_LOG__
+
+            for (int i = 36;i < 64;i++){
+              config.top_message[i-36] = check[i];
+            }
+
+            save_conf = true;
+
+            sendCommandStatus(cmd,true);
+            break;
+          }
+          case COMMAND_MESSAGE_BOTTOM:
+          {
+            #ifdef __PRINT_LOG__
+              Serial.println("set message bottom success");
+            #endif //__PRINT_LOG__
+
+            for (int i = 36;i < 64;i++){
+              config.bottom_message[i-36] = check[i];
+            }
+            
+            save_conf = true;
+
+            sendCommandStatus(cmd,true);
+            break;
+          }
           case COMMAND_SET_PASSWORD:
           {
             generateRandomKeys();
@@ -1005,6 +1067,15 @@ void executeCmd(byte *check){
       processEncryptedFrame(check);
       break;
     }
+    case COMMAND_MESSAGE_BOTTOM:
+    case COMMAND_MESSAGE_TOP:
+    {
+      #ifdef __PRINT_LOG__
+        Serial.println("processing message...");
+      #endif //__PRINT_LOG__
+      processEncryptedFrame(check);
+      break;
+    }
     case COMMAND_SET_PASSWORD:
     {
       #ifdef __PRINT_LOG__
@@ -1130,6 +1201,8 @@ void executeCmd(byte *check){
           #ifdef __PRINT_LOG__
             Serial.println("set password success");
           #endif //__PRINT_LOG__
+
+          save_conf = true;
 
           print_lcd_message("command status :","set pwd success");
 
@@ -1264,6 +1337,8 @@ void executeCmd(byte *check){
           #endif //__PRINT_LOG__
             
           print_lcd_message("command status :","set keys success");
+
+          save_conf = true;
 
           sendCommandStatus(cmd,true);
         }
@@ -1531,6 +1606,12 @@ void RFduinoBLE_onReceive(char *data, int len){
           break;
         }
         case COMMAND_PUSH:
+        {
+          processHeaderFrame(cmd,data,len);
+          break;
+        }
+        case COMMAND_MESSAGE_BOTTOM:
+        case COMMAND_MESSAGE_TOP:
         {
           processHeaderFrame(cmd,data,len);
           break;

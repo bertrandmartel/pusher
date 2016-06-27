@@ -29,6 +29,7 @@
     <string name="menu_item_switch_data_packet_count">Switch chart data to \'packet count\'</string>
     <string name="menu_password">Password</string>
     <string name="menu_keys">Change encryption key</string>
+    <string name="menu_message">Set default LCD message</string>
     <string name="menu_disassociate">disassociate device</string>
     <string name="scan_log">Scanning for device</string>
     <string name="connect_log">Connecting to device</string>
@@ -37,6 +38,7 @@
     <string name="command_failure_log">Command failure</string>
     <string name="rfduino_device_name">RFduino device name</string>
     <string name="rfduino_device_password">RFduino device password</string>
+    <string name="rfduino_device_message">LCD default message</string>
     <string name="rfduino_device_keys">Change AES key</string>
     <string name="user_action_device_code_title">Type device code</string>
     <string name="dialog_ok">OK</string>

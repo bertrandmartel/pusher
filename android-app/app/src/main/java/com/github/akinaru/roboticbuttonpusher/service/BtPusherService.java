@@ -57,12 +57,18 @@ public class BtPusherService extends Service {
 
     private String TAG = BtPusherService.class.getSimpleName();
 
+    private String DEFAULT_MESSAGE = "undefined";
+
     /**
      * load native module entry point
      */
     static {
         System.loadLibrary("buttonpusher");
     }
+
+    private String topMessage = DEFAULT_MESSAGE;
+
+    private String bottomMessage = DEFAULT_MESSAGE;
 
     public static native byte[] encrypt(byte[] message, int length, byte[] key, byte[] iv);
 
@@ -160,6 +166,23 @@ public class BtPusherService extends Service {
 
     public void disassociate() {
         mTaskState = BtnPusherInputTask.DISASSOCIATE;
+        chainTasks();
+    }
+
+    public String getTopMessage() {
+        return topMessage;
+    }
+
+    public String getBottomMessage() {
+        return bottomMessage;
+    }
+
+    public void setMessage(String topMessage, String bottomMessage) {
+
+        this.topMessage = topMessage;
+        this.bottomMessage = bottomMessage;
+        Log.i(TAG, "setting top message");
+        mTaskState = BtnPusherInputTask.MESSAGE;
         chainTasks();
     }
 
@@ -336,6 +359,10 @@ public class BtPusherService extends Service {
                                 setTimeoutTask(ButtonPusherError.SET_KEYS_TIMEOUT, REQUEST_TIMEOUT);
                                 device.setKeys(mPassword, BtnPusherKeysType.GENERATED);
                                 break;
+                            case MESSAGE:
+                                setTimeoutTask(ButtonPusherError.SET_MESSAGE_TIMEOUT, REQUEST_TIMEOUT);
+                                device.setMessage(topMessage, bottomMessage);
+                                break;
                             case DISASSOCIATE:
                                 setTimeoutTask(ButtonPusherError.DISASSOCIATE_TIMEOUT, REQUEST_TIMEOUT);
                                 device.disassociate();
@@ -399,6 +426,10 @@ public class BtPusherService extends Service {
                 sendFailure(ButtonPusherError.SET_PASSWORD_FAILURE);
             } else if (action.equals(BluetoothEvents.BT_EVENT_DEVICE_DISASSOCIATE_FAILURE)) {
                 sendFailure(ButtonPusherError.DISASSOCIATE_FAILURE);
+            } else if (action.equals(BluetoothEvents.BT_EVENT_DEVICE_SET_MESSAGE_SUCCESS)) {
+                sendSuccess();
+            } else if (action.equals(BluetoothEvents.BT_EVENT_DEVICE_MESSAGE_FAILURE)) {
+                sendFailure(ButtonPusherError.SET_MESSAGE_FAILURE);
             }
         }
     };
@@ -489,6 +520,8 @@ public class BtPusherService extends Service {
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_SET_KEYS_SUCCESS);
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_DISASSOCIATE_SUCCESS);
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_DISASSOCIATE_FAILURE);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_SET_MESSAGE_SUCCESS);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_MESSAGE_FAILURE);
         return intentFilter;
     }
 

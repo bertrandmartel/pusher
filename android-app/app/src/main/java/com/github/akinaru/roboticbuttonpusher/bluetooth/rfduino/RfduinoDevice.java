@@ -76,6 +76,8 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
     private final static int SENDING_BUFFER_MAX_LENGTH = 18;
 
+    private final static int TOP_MESSAGE_MAX_LENGTH = 28;
+
     private int sendIndex = 0;
     private int sendingNum = 0;
     private boolean remain = false;
@@ -112,6 +114,7 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
     private String oldPassword;
     private boolean generateDefaultKey = false;
     private BtnPusherInputTask mTask = BtnPusherInputTask.PUSH;
+    private boolean sendMessage = false;
 
     /*
      * Creates a new pool of Thread objects for the download work queue
@@ -122,6 +125,10 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
      * shared preference object.
      */
     private SharedPreferences sharedPref;
+
+    private String topMessage;
+    private String bottomMessage;
+
 
     private String generateXorKey() {
         return Base64.encodeToString(new RandomGen(32).nextString().getBytes(), Base64.DEFAULT);
@@ -174,6 +181,7 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
             public void onCharacteristicChangeReceived(BluetoothGattCharacteristic charac) {
 
                 Log.i(TAG, "receive something : " + charac.getUuid().toString() + " " + charac.getValue().length + " " + charac.getValue()[0]);
+                Log.i(TAG, "=> " + bytesToHex(charac.getValue()));
 
                 switch (mState) {
                     case SENDING:
@@ -332,7 +340,42 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
                                     }
                                 }
                                 break;
+                            case COMMAND_MESSAGE_BOTTOM:
+                                if (charac.getValue().length > 2) {
 
+                                    if (((charac.getValue()[2] & 0xFF)) == 1) {
+                                        if (mPushListener != null) {
+                                            mPushListener.onPushFailure();
+                                        }
+                                    } else if (((charac.getValue()[2] & 0xFF)) == 0) {
+                                        if (mPushListener != null) {
+                                            mPushListener.onPushSuccess();
+                                        }
+                                    }
+                                }
+                                break;
+                            case COMMAND_MESSAGE_TOP:
+                                if (charac.getValue().length > 2) {
+
+                                    if (((charac.getValue()[2] & 0xFF)) == 1) {
+                                        if (mPushListener != null) {
+                                            mPushListener.onPushFailure();
+                                        }
+                                    } else if (((charac.getValue()[2] & 0xFF)) == 0) {
+                                        if (mPushListener != null) {
+
+                                            sendMessage = false;
+
+                                            threadPool.execute(new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    sendCommand(BtnPusherInputTask.MESSAGE);
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
+                                break;
                             case COMMAND_PUSH:
                                 if (charac.getValue().length > 2) {
 
@@ -485,6 +528,67 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
         return null;
     }
 
+    private byte[] buildMessageRequest(byte[] token, byte[] password, String message) {
+
+        if (token.length < 20 && (password.length <= 20)) {
+
+            byte[] decodedVal = new byte[28];
+            System.arraycopy(token, 0, decodedVal, 0, 8);
+            Log.i(TAG, "complete1 : " + bytesToHex(decodedVal));
+            for (int i = 0; i < password.length; i++) {
+                decodedVal[i + 8] = password[i];
+            }
+            Log.i(TAG, "complete2 : " + bytesToHex(decodedVal));
+            if (password.length < 20) {
+                for (int i = password.length; i < 20; i++) {
+                    decodedVal[i + 8] = 0;
+                }
+            }
+            Log.i(TAG, "complete3 : " + bytesToHex(decodedVal));
+
+            Log.i(TAG, "token length : " + token.length);
+            byte[] xored = new byte[28];
+
+            int i = 0;
+            for (byte element : decodedVal) {
+                Log.i(TAG, (mXorKey[i] & 0xFF) + " ^ " + (element & 0xFF));
+                xored[i] = (byte) (mXorKey[i++] ^ element);
+                Log.i(TAG, "xored[i] : " + (xored[i - 1] & 0xFF));
+            }
+
+            byte[] data = new byte[36 + TOP_MESSAGE_MAX_LENGTH];
+            byte[] serial = hexStringToByteArray(Build.SERIAL);
+
+            Log.i(TAG, "device idd : " + bytesToHex(serial) + " => " + Build.SERIAL);
+
+            for (int j = 0; j < 8; j++) {
+                data[j] = serial[j];
+            }
+
+            for (int j = 0; j < 28; j++) {
+                data[j + 8] = xored[j];
+            }
+
+            byte[] topMessageBa = message.getBytes();
+
+            for (int j = 36; j < (36 + TOP_MESSAGE_MAX_LENGTH); j++) {
+                if (topMessageBa.length > (j - 36)) {
+                    data[j] = topMessageBa[j - 36];
+                } else {
+                    data[j] = 0;
+                }
+            }
+
+            Log.i(TAG, "output : " + bytesToHex(data));
+
+            return BtPusherService.encrypt(data, data.length, mAesKey, Arrays.copyOf(mIv, mIv.length));
+
+        } else {
+            Log.e(TAG, "token length cant be <20");
+        }
+        return null;
+    }
+
     private byte[] buildPushRequest(byte[] token, byte[] password) {
 
         if (token.length < 20 && (password.length <= 20)) {
@@ -563,6 +667,14 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
     @Override
     public void disassociate() {
         sendCommand(BtnPusherInputTask.DISASSOCIATE);
+    }
+
+    @Override
+    public void setMessage(String top, String bottom) {
+        this.topMessage = top;
+        this.bottomMessage = bottom;
+        sendMessage = true;
+        sendCommand(BtnPusherInputTask.MESSAGE);
     }
 
     @Override
@@ -855,6 +967,10 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
                                         Log.i(TAG, "push failure");
                                         conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_PUSH_FAILURE, new ArrayList<String>());
                                         break;
+                                    case MESSAGE:
+                                        Log.i(TAG, "set message failure");
+                                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_MESSAGE_FAILURE, new ArrayList<String>());
+                                        break;
                                     case PASSWORD:
                                         Log.i(TAG, "set password failure");
                                         conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_SET_PASSWORD_FAILURE, new ArrayList<String>());
@@ -881,6 +997,10 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
                                     case PUSH:
                                         Log.i(TAG, "push success");
                                         conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_PUSH_SUCCESS, new ArrayList<String>());
+                                        break;
+                                    case MESSAGE:
+                                        Log.i(TAG, "set message top success");
+                                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_SET_MESSAGE_SUCCESS, new ArrayList<String>());
                                         break;
                                     case PASSWORD:
                                         Log.i(TAG, "set password success");
@@ -915,6 +1035,13 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
                                 break;
                             case KEYS_GENERATED:
                                 sendBitmap((byte) ButtonPusherCmd.COMMAND_SET_KEY.ordinal(), buildPushRequest(mToken, mPassword.getBytes()));
+                                break;
+                            case MESSAGE:
+                                if (sendMessage) {
+                                    sendBitmap((byte) ButtonPusherCmd.COMMAND_MESSAGE_TOP.ordinal(), buildMessageRequest(mToken, mPassword.getBytes(), topMessage));
+                                } else {
+                                    sendBitmap((byte) ButtonPusherCmd.COMMAND_MESSAGE_BOTTOM.ordinal(), buildMessageRequest(mToken, mPassword.getBytes(), bottomMessage));
+                                }
                                 break;
                             case DISASSOCIATE:
                                 sendBitmap((byte) ButtonPusherCmd.COMMAND_DEASSOCIATE.ordinal(), buildPushRequest(mToken, mPassword.getBytes()));
