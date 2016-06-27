@@ -356,3 +356,11 @@ void Config::set_iv(char * iv){
 		config.iv[i]=iv[i];
 	}
 }
+
+bool Config::is_save_conf(){
+	return save_conf;
+}
+
+void Config::set_save_conf(bool state){
+	save_conf=state;
+}

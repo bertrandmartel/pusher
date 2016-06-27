@@ -65,12 +65,14 @@ void Crypto::generate_key(byte * code,byte * key){
   uint8_t k = 0;
 
   for (int i = 0; i  < 16;i++){
-
+    
     if (i!=0 && ((i%4)==0)){
 
       lfsr_tmp = (code[j]<<8) + code[j+1];
       j+=2;
     }
+
+    
     uint16_t bit  = ((lfsr_tmp >> 0) ^ (lfsr_tmp >> 2) ^ (lfsr_tmp >> 3) ^ (lfsr_tmp >> 5) ) & 1;
     lfsr_tmp =  (lfsr_tmp >> 1) | (bit << 15);
 
@@ -78,6 +80,7 @@ void Crypto::generate_key(byte * code,byte * key){
     k++;
     key[k] = (lfsr_tmp & 0x00FF)>>0;
     k++;
+    
   }
 }
 
