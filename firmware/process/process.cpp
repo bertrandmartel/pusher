@@ -286,11 +286,13 @@ void Process::processEncryptedFrame(byte * check){
       }
       else{
         lcd_printer->print_lcd_message("command failure :","bad password");
+        delay(500);
         sendCommandStatus(cmd,false);
       } 
     }
     else{
       lcd_printer->print_lcd_message("command failure:","bad token");
+      delay(500);
       memset(token, 0, 8);
       sendCommandStatus(cmd,false);
     }
@@ -362,7 +364,7 @@ void Process::executeCmd(byte *check){
       if (strlen(token) == 0){
 
         lcd_printer->print_lcd_message("command failure:","token required");
-
+        delay(500);
         sendCommandStatus(COMMAND_PUSH,false);
         return;
       }
@@ -430,13 +432,14 @@ void Process::executeCmd(byte *check){
           config->set_save_conf(true);
 
           lcd_printer->print_lcd_message("command status :","set pwd success");
-
+          delay(500);
           sendCommandStatus(cmd,true);
         }
         else{
 
           memset(token, 0, 8);
           lcd_printer->print_lcd_message("command failure:","bad token");
+          delay(500);
           sendCommandStatus(cmd,false);
         }
       }
@@ -452,6 +455,7 @@ void Process::executeCmd(byte *check){
       if (strlen(token) == 0){
 
         lcd_printer->print_lcd_message("command failure:","no token");
+        delay(500);
         sendCommandStatus(COMMAND_PUSH,false);
         return;
       }
@@ -530,12 +534,14 @@ void Process::executeCmd(byte *check){
           config->set_pass(pass_tmp);
 
           lcd_printer->print_lcd_message("command status :","set keys success");
+          delay(500);
           config->set_save_conf(true);
           sendCommandStatus(cmd,true);
         }
         else{
           memset(token, 0, 8);
           lcd_printer->print_lcd_message("command failure:","bad token");
+          delay(500);
           sendCommandStatus(cmd,false);
         }
       }
@@ -642,6 +648,7 @@ void Process::executeCmd(byte *check){
         sending_index=0;
 
         lcd_printer->print_lcd_message("command success:","associated");
+        delay(500);
         char req[10]={0};
         sprintf(req, "%c:%c:%d", COMMAND_ASSOCIATE_RESPONSE, STATE_SENDING,data_length);
         RFduinoBLE.send(req,10);
@@ -683,11 +690,6 @@ void Process::process_state(char *data, int len){
       offset=0;
     
       cmd = data[0];
-
-      #ifdef __PRINT_LOG__
-        Serial.print("receive command ");
-        Serial.println(cmd);
-      #endif //__PRINT_LOG__
       
       uint8_t ret = 0;
 

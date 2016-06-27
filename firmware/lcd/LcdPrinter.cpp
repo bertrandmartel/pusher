@@ -23,5 +23,5 @@ void LcdPrinter::print_lcd_message(char * header,char * message){
 }
 
 void LcdPrinter::print_default_message(){
-  //print_lcd_message(config->get_config().top_message,config->get_config().bottom_message);
+  print_lcd_message(config->get_config().top_message,config->get_config().bottom_message);
 }
