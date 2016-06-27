@@ -8,5 +8,6 @@ public enum BtnPusherInputTask {
     PASSWORD,
     KEYS_DEFAULT,
     DISASSOCIATE,
+    MESSAGE,
     KEYS_GENERATED
 }

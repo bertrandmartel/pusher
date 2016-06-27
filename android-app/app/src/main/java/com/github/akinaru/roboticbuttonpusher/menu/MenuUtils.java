@@ -28,6 +28,7 @@ import android.view.MenuItem;
 
 import com.github.akinaru.roboticbuttonpusher.R;
 import com.github.akinaru.roboticbuttonpusher.dialog.AboutDialog;
+import com.github.akinaru.roboticbuttonpusher.dialog.DeviceMessageDialog;
 import com.github.akinaru.roboticbuttonpusher.dialog.DevicePasswordDialog;
 import com.github.akinaru.roboticbuttonpusher.dialog.KeysDialog;
 import com.github.akinaru.roboticbuttonpusher.dialog.OpenSourceItemsDialog;
@@ -64,6 +65,13 @@ public class MenuUtils {
             case R.id.keys_item: {
                 if (buttonPusher != null) {
                     KeysDialog dialog = new KeysDialog(buttonPusher);
+                    dialog.show();
+                }
+                break;
+            }
+            case R.id.message_item: {
+                if (buttonPusher != null) {
+                    DeviceMessageDialog dialog = new DeviceMessageDialog(buttonPusher);
                     dialog.show();
                 }
                 break;

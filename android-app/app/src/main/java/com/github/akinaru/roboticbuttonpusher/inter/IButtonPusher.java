@@ -12,6 +12,7 @@ public interface IButtonPusher {
     boolean getDebugMode();
 
     Context getContext();
+
     void setPassword(String pass);
 
     void setDebugMode(boolean status);
@@ -27,4 +28,11 @@ public interface IButtonPusher {
     void generateDefaultAesKey();
 
     void disassociate();
+
+    String getTopMessage();
+
+    String getBotttomMessage();
+
+    void setMessage(String topMessage, String bottomMessage);
+    
 }

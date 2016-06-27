@@ -12,7 +12,10 @@
             android:id="@+id/keys_item"
             android:icon="@drawable/ic_action_key"
             android:title="@string/menu_keys" />
-
+        <item
+            android:id="@+id/message_item"
+            android:icon="@drawable/ic_message"
+            android:title="@string/menu_message" />
         <item
             android:id="@+id/exit_item"
             android:icon="@drawable/ic_action_exit"

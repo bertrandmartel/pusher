@@ -304,6 +304,12 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
                     break;
                 case NOTIFICATION_TIMEOUT:
                     break;
+                case SET_MESSAGE_FAILURE:
+                    appendDebugTv("set message failure");
+                    break;
+                case SET_MESSAGE_TIMEOUT:
+                    appendDebugTv("set message timeout...");
+                    break;
                 case BLUETOOTH_STATE_TIMEOUT:
                     appendDebugTv("Bluetooth state timeout...");
                     break;
@@ -460,6 +466,22 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
                         Toast.makeText(PushActivity.this, "disassociation success", Toast.LENGTH_SHORT).show();
                     }
                 });
+            } else if (BluetoothEvents.BT_EVENT_DEVICE_SET_MESSAGE_SUCCESS.equals(action)) {
+                Log.v(TAG, "set message success");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(PushActivity.this, "set message success", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } else if (BluetoothEvents.BT_EVENT_DEVICE_MESSAGE_FAILURE.equals(action)) {
+                Log.v(TAG, "set message failure");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(PushActivity.this, "set message failure", Toast.LENGTH_SHORT).show();
+                    }
+                });
             }
         }
     };
@@ -560,6 +582,21 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
         mSingleton.disassociate();
     }
 
+    @Override
+    public String getTopMessage() {
+        return mSingleton.getTopMessage();
+    }
+
+    @Override
+    public String getBotttomMessage() {
+        return mSingleton.getBotttomMessage();
+    }
+
+    @Override
+    public void setMessage(String topMessage, String bottomMessage) {
+        mSingleton.setMessage(topMessage, bottomMessage);
+    }
+
     private void clearReplaceDebugTv(final String text) {
         runOnUiThread(new Runnable() {
             @Override
@@ -593,6 +630,8 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_SET_PASSWORD_FAILURE);
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_DISASSOCIATE_FAILURE);
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_DISASSOCIATE_SUCCESS);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_SET_MESSAGE_SUCCESS);
+        intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_MESSAGE_FAILURE);
         return intentFilter;
     }
 }
