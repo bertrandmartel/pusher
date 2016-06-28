@@ -58,7 +58,6 @@ dependencies {
     compile 'com.android.support:design:23.0.1'
     compile 'com.android.support:recyclerview-v7:+'
     compile 'com.github.silvestrpredko:dot-progress-bar:0.1.4@aar'
-    compile 'com.scottyab:aescrypt:0.0.1'
 }
 
 task nativeLibsToJar(type: Zip, description: 'create a jar archive of the native libs') {
