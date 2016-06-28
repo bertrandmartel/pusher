@@ -280,7 +280,7 @@ void Config::restore(){
  
   in_flash = (config_t*)ADDRESS_OF_PAGE(CONFIG_STORAGE);
 
-  if (in_flash->flag != 0){
+  if (in_flash->flag != 1){
 
     #ifdef __PRINT_LOG__
       Serial.println("writing default configuration");
