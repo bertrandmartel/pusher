@@ -164,7 +164,7 @@ public class PushSingleton {
 
     public static PushSingleton getInstance() {
         if (mInstance == null) {
-            Log.i(TAG, "create instance Singleton");
+            Log.v(TAG, "create instance Singleton");
             mInstance = new PushSingleton();
         }
         return mInstance;

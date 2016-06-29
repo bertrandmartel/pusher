@@ -164,8 +164,6 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
         String iv = sharedPref.getString(SharedPrefConst.IV, getIv());
         mIv = Base64.decode(iv, Base64.DEFAULT);
 
-        Log.i(TAG, "mXorKey : " + xorKey + " : " + bytesToHex(mXorKey));
-
         SharedPreferences.Editor editor = sharedPref.edit();
         editor.putString(SharedPrefConst.XOR_KEY, Base64.encodeToString(mXorKey, Base64.DEFAULT));
         editor.commit();

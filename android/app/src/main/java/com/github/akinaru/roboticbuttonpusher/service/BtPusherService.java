@@ -183,7 +183,6 @@ public class BtPusherService extends Service {
 
         this.topMessage = topMessage;
         this.bottomMessage = bottomMessage;
-        Log.i(TAG, "setting top message");
         mTaskState = BtnPusherInputTask.MESSAGE;
         chainTasks();
     }
@@ -212,7 +211,7 @@ public class BtPusherService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.i(TAG, "service create");
+        Log.v(TAG, "service create");
 
         //initiate bluetooth manager object used to manage all Android Bluetooth API
         btManager = new BluetoothCustomManager(this);
@@ -253,7 +252,6 @@ public class BtPusherService extends Service {
                 Log.v(TAG, "Scan has started");
             } else if (BluetoothEvents.BT_EVENT_DEVICE_REMOVED.equals(action)) {
 
-                Log.i(TAG, "received : BT_EVENT_DEVICE_REMOVED");
                 switch (mState) {
                     case WAIT_DEVICE_START:
                         mState = ButtonPusherState.NONE;
@@ -286,7 +284,6 @@ public class BtPusherService extends Service {
                     btManager.connect(mDeviceAdress);
                 }
             } else if (BluetoothEvents.BT_EVENT_DEVICE_RETRY.equals(action)) {
-                Log.i(TAG, "RETRYING");
                 btManager.connect(mDeviceAdress);
             } else if (BluetoothEvents.BT_EVENT_DEVICE_DISCOVERED.equals(action)) {
 
@@ -464,7 +461,7 @@ public class BtPusherService extends Service {
         }
 
         btManager.disconnectAndRemove(mDeviceAdress);
-        Log.i(TAG, "change state PROCESS_END");
+
         mState = ButtonPusherState.PROCESS_END;
         changeState(mState);
         mState = ButtonPusherState.NONE;
@@ -620,7 +617,6 @@ public class BtPusherService extends Service {
 
     public void uploadPassword(String oldPass) {
         this.oldPwd = oldPass;
-        Log.i(TAG, "old pass : " + oldPass);
         mTaskState = BtnPusherInputTask.PASSWORD;
         chainTasks();
     }
