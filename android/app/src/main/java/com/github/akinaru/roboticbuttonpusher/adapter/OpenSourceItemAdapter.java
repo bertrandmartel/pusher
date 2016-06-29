@@ -35,9 +35,10 @@ import com.github.akinaru.roboticbuttonpusher.R;
 public class OpenSourceItemAdapter extends BaseAdapter {
 
     private static final String[][] COMPONENTS = new String[][]{
-            
+
             {"RFDuino", "https://github.com/RFduino/RFduino"},
-            {"rfduino-makefile", "https://github.com/akinaru/rfduino-makefile"}
+            {"rfduino-makefile", "https://github.com/akinaru/rfduino-makefile"},
+            {"AES library by Brian Gladman", ""}
     };
 
     private LayoutInflater mInflater;
