@@ -261,20 +261,28 @@ void Config::remove_device(char * device_id){
 
   int index = -1;
 
-  for (int i = 0; i< MAX_ASSOCIATED_DEVICE;i++){
+  while (index!=-2){
 
-    if (memcmp(device_ptr[i].device_id,device_id,8)==0){
-      index=i;
+    index = -1;
+    for (int i = 0; i< MAX_ASSOCIATED_DEVICE;i++){
+
+      if (memcmp(device_ptr[i].device_id,device_id,8)==0){
+        index=i;
+      }
     }
-  }
-  if ((index!=-1) && (index!=MAX_ASSOCIATED_DEVICE)){
-    for (int i = index;i<MAX_ASSOCIATED_DEVICE-1;i++){
-      strcpy(device_ptr[i].device_id, device_ptr[i+1].device_id);
-      strcpy(device_ptr[i].xor_key  , device_ptr[i+1].xor_key);
+
+    if (index<0){
+      index=-2;
     }
-    config.device_num--;
-    add_device_pending=true;
-    print_all_config();
+    if ((index>=0) && (index!=MAX_ASSOCIATED_DEVICE)){
+      for (int i = index;i<MAX_ASSOCIATED_DEVICE-1;i++){
+        strcpy(device_ptr[i].device_id, device_ptr[i+1].device_id);
+        strcpy(device_ptr[i].xor_key  , device_ptr[i+1].xor_key);
+      }
+      config.device_num--;
+      add_device_pending=true;
+      print_all_config();
+    }
   }
 }
 
@@ -282,7 +290,7 @@ void Config::restore(){
  
   in_flash = (config_t*)ADDRESS_OF_PAGE(CONFIG_STORAGE);
 
-  if (in_flash->flag != 0){
+  if (in_flash->flag != 1){
 
     #ifdef __PRINT_LOG__
       Serial.println("writing default configuration");
