@@ -572,6 +572,7 @@ void Process::executeCmd(byte *check){
     }
     case COMMAND_ASSOCIATE_RESPONSE:
     {
+
       if (strlen(token) == 0){
         sendCommandStatus(COMMAND_ASSOCIATE,false);
         return;
@@ -603,9 +604,10 @@ void Process::executeCmd(byte *check){
           sendCommandStatus(COMMAND_ASSOCIATE,false);
           return;
         }
+
         //record xor / device id
         config->add_device(device_id,xor_key);
-        
+
         byte key_data[64];
         byte iv_data[64];
 
