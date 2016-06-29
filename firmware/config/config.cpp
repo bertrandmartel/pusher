@@ -165,6 +165,8 @@ void Config::add_device(char * device_id,char * xor_key){
 
   if (config.device_num<MAX_ASSOCIATED_DEVICE){
 
+    remove_device(device_id);
+    
     #ifdef __PRINT_LOG__
       Serial.println(config.device_num);
     #endif //__PRINT_LOG__
