@@ -403,12 +403,17 @@ public class BluetoothCustomManager implements IBluetoothCustomManager {
                 @Override
                 public void run() {
 
-                    BluetoothGattDescriptor descriptor = getGatt().getService(UUID.fromString(getDescriptorServiceUid()))
-                            .getCharacteristic(UUID.fromString(getDescriptorCharacUid())).getDescriptor(UUID.fromString(getUid()));
+                    if (getGatt() != null && getGatt().getService(UUID.fromString(getDescriptorServiceUid())) != null && getGatt().getService(UUID.fromString(getDescriptorServiceUid()))
+                            .getCharacteristic(UUID.fromString(getDescriptorCharacUid())) != null) {
 
-                    descriptor.setValue(getValue());
+                        BluetoothGattDescriptor descriptor = getGatt().getService(UUID.fromString(getDescriptorServiceUid()))
+                                .getCharacteristic(UUID.fromString(getDescriptorCharacUid())).getDescriptor(UUID.fromString(getUid()));
 
-                    getGatt().writeDescriptor(descriptor);
+                        descriptor.setValue(getValue());
+
+                        getGatt().writeDescriptor(descriptor);
+                    }
+
                     eventManager.reset();
                     try {
                         eventManager.waitOne(BT_TIMEOUT);

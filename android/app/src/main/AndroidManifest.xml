@@ -35,7 +35,8 @@
         </service>
 
         <receiver android:name=".ButtonWidgetProvider">
-            <meta-data android:name="android.appwidget.provider"
+            <meta-data
+                android:name="android.appwidget.provider"
                 android:resource="@xml/appwidget_provider" />
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

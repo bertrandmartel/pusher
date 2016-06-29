@@ -16,13 +16,19 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <Button
-        android:id="@+id/start_btn"
-        android:layout_width="70dp"
-        android:layout_height="70dp"
+    <ImageView
         android:layout_centerInParent="true"
-        android:background="@drawable/round"
-        android:text="push"
-        android:textColor="#000" />
+        android:layout_width="65dp"
+        android:src="@drawable/round"
+        android:layout_height="65dp" />
+
+    <ImageButton
+        android:id="@+id/start_btn"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_centerInParent="true"
+        android:scaleType="centerInside"
+        android:background="?android:attr/selectableItemBackground"
+        android:src="@drawable/ic_touch_app_tpt" />
 
 </RelativeLayout>

@@ -168,6 +168,7 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
 
         mSingleton = PushSingleton.getInstance();
         mSingleton.setSingletonListener(this);
+        mSingleton.setAssociate(true);
 
         if (mAssociated) {
             findViewById(R.id.fab).setVisibility(View.GONE);
@@ -437,11 +438,11 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
                     @Override
                     public void run() {
                         if (mDisassociateMenuItem != null) {
-                            mDisassociateMenuItem.setVisible(false);
+                            mDisassociateMenuItem.setVisible(true);
                         }
                         mAssociated = false;
-                        findViewById(R.id.fab).setVisibility(View.VISIBLE);
-                        findViewById(R.id.fab_associated).setVisibility(View.GONE);
+                        findViewById(R.id.fab).setVisibility(View.GONE);
+                        findViewById(R.id.fab_associated).setVisibility(View.VISIBLE);
                         SharedPreferences.Editor editor = sharedPref.edit();
                         editor.putBoolean(SharedPrefConst.ASSOCIATED_STATUS, mAssociated);
                         editor.commit();
@@ -488,6 +489,7 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
     @Override
     public void onResume() {
         super.onResume();
+        mSingleton.setAssociate(true);
         dotProgressBar.setAlpha(0);
     }
 

@@ -1019,46 +1019,54 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
                 switch (task) {
                     case PUSH:
-                        mTokenListener = new ITokenListener() {
 
-                            @Override
-                            public void onTokenReceived(final byte[] token) {
+                        if (conn.getManager().getService().isAssociate()) {
 
-                                Log.v(TAG, "token received sending associate request");
+                            mTokenListener = new ITokenListener() {
 
-                                mAssociationListener = new IInteractiveListener() {
-                                    @Override
-                                    public void onSuccess() {
-                                        Log.v(TAG, "association success");
-                                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_SUCCESS, new ArrayList<String>());
-                                    }
+                                @Override
+                                public void onTokenReceived(final byte[] token) {
 
-                                    @Override
-                                    public void onFailure() {
-                                        Log.v(TAG, "association failure");
-                                        conn.disconnect();
-                                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_FAILURE, new ArrayList<String>());
-                                    }
+                                    Log.v(TAG, "token received sending associate request");
 
-                                    @Override
-                                    public void onUserActionRequired() {
-                                        Log.v(TAG, "user action required");
-                                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_USER_ACTION_REQUIRED, new ArrayList<String>());
-                                    }
+                                    mAssociationListener = new IInteractiveListener() {
+                                        @Override
+                                        public void onSuccess() {
+                                            Log.v(TAG, "association success");
+                                            conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_SUCCESS, new ArrayList<String>());
+                                        }
 
-                                    @Override
-                                    public void onUserActionCommitted(String code) {
-                                        Log.v(TAG, "user action committed : " + code);
-                                        sendUserCommittedResponse(code, token, ButtonPusherCmd.COMMAND_ASSOCIATE_RESPONSE);
-                                    }
-                                };
+                                        @Override
+                                        public void onFailure() {
+                                            Log.v(TAG, "association failure");
+                                            conn.disconnect();
+                                            conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_FAILURE, new ArrayList<String>());
+                                        }
 
-                                conn.writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, new byte[]{(byte) ButtonPusherCmd.COMMAND_ASSOCIATE.ordinal()}, null);
-                            }
-                        };
+                                        @Override
+                                        public void onUserActionRequired() {
+                                            Log.v(TAG, "user action required");
+                                            conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_USER_ACTION_REQUIRED, new ArrayList<String>());
+                                        }
 
-                        conn.writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, new byte[]{(byte) ButtonPusherCmd.COMMAND_GET_TOKEN.ordinal()}, null);
+                                        @Override
+                                        public void onUserActionCommitted(String code) {
+                                            Log.v(TAG, "user action committed : " + code);
+                                            sendUserCommittedResponse(code, token, ButtonPusherCmd.COMMAND_ASSOCIATE_RESPONSE);
+                                        }
+                                    };
 
+                                    conn.writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, new byte[]{(byte) ButtonPusherCmd.COMMAND_ASSOCIATE.ordinal()}, null);
+                                }
+                            };
+
+                            conn.writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, new byte[]{(byte) ButtonPusherCmd.COMMAND_GET_TOKEN.ordinal()}, null);
+
+                        } else {
+                            Log.v(TAG, "will not associate");
+                            conn.disconnect();
+                            conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_FAILURE, new ArrayList<String>());
+                        }
                     case PASSWORD:
                         Log.v(TAG, "set password failure");
                         conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_SET_PASSWORD_FAILURE, new ArrayList<String>());
@@ -1074,6 +1082,10 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
                     case DISASSOCIATE:
                         Log.v(TAG, "disassociate failure");
                         conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_DISASSOCIATE_FAILURE, new ArrayList<String>());
+                        break;
+                    case MESSAGE:
+                        Log.v(TAG, "set message failure");
+                        conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_MESSAGE_FAILURE, new ArrayList<String>());
                         break;
                     default:
                         break;
@@ -1133,47 +1145,55 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
             @Override
             public void onStatusFailure() {
 
-                Log.v(TAG, "You are not yet associated with this device. Associating ...");
+                Log.v(TAG, "You are not yet associated with this device. Associating ... " + conn.getManager().getService().isAssociate());
 
-                mTokenListener = new ITokenListener() {
+                if (conn.getManager().getService().isAssociate()) {
 
-                    @Override
-                    public void onTokenReceived(final byte[] token) {
+                    mTokenListener = new ITokenListener() {
 
-                        Log.v(TAG, "token received sending associate request");
+                        @Override
+                        public void onTokenReceived(final byte[] token) {
 
-                        mAssociationListener = new IInteractiveListener() {
-                            @Override
-                            public void onSuccess() {
-                                Log.v(TAG, "association success");
-                                conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_SUCCESS, new ArrayList<String>());
-                            }
+                            Log.v(TAG, "token received sending associate request");
 
-                            @Override
-                            public void onFailure() {
-                                Log.v(TAG, "association failure");
-                                conn.disconnect();
-                                conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_FAILURE, new ArrayList<String>());
-                            }
+                            mAssociationListener = new IInteractiveListener() {
+                                @Override
+                                public void onSuccess() {
+                                    Log.v(TAG, "association success");
+                                    conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_SUCCESS, new ArrayList<String>());
+                                }
 
-                            @Override
-                            public void onUserActionRequired() {
-                                Log.v(TAG, "user action required");
-                                conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_USER_ACTION_REQUIRED, new ArrayList<String>());
-                            }
+                                @Override
+                                public void onFailure() {
+                                    Log.v(TAG, "association failure");
+                                    conn.disconnect();
+                                    conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_FAILURE, new ArrayList<String>());
+                                }
 
-                            @Override
-                            public void onUserActionCommitted(String code) {
-                                Log.v(TAG, "user action committed : " + code);
-                                sendUserCommittedResponse(code, token, ButtonPusherCmd.COMMAND_ASSOCIATE_RESPONSE);
-                            }
-                        };
+                                @Override
+                                public void onUserActionRequired() {
+                                    Log.v(TAG, "user action required");
+                                    conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_USER_ACTION_REQUIRED, new ArrayList<String>());
+                                }
 
-                        conn.writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, new byte[]{(byte) ButtonPusherCmd.COMMAND_ASSOCIATE.ordinal()}, null);
-                    }
-                };
+                                @Override
+                                public void onUserActionCommitted(String code) {
+                                    Log.v(TAG, "user action committed : " + code);
+                                    sendUserCommittedResponse(code, token, ButtonPusherCmd.COMMAND_ASSOCIATE_RESPONSE);
+                                }
+                            };
 
-                conn.writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, new byte[]{(byte) ButtonPusherCmd.COMMAND_GET_TOKEN.ordinal()}, null);
+                            conn.writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, new byte[]{(byte) ButtonPusherCmd.COMMAND_ASSOCIATE.ordinal()}, null);
+                        }
+                    };
+
+                    conn.writeCharacteristic(RFDUINO_SERVICE, RFDUINO_SEND_CHARAC, new byte[]{(byte) ButtonPusherCmd.COMMAND_GET_TOKEN.ordinal()}, null);
+
+                } else {
+                    Log.v(TAG, "will not associate");
+                    conn.disconnect();
+                    conn.getManager().broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_ASSOCIATION_FAILURE, new ArrayList<String>());
+                }
             }
         };
 
