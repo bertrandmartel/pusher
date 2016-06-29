@@ -82,6 +82,8 @@ public class BtPusherService extends Service {
 
     private String oldPwd;
 
+    private boolean mAssociate = false;
+
     /**
      * Service binder
      */
@@ -184,6 +186,14 @@ public class BtPusherService extends Service {
         Log.i(TAG, "setting top message");
         mTaskState = BtnPusherInputTask.MESSAGE;
         chainTasks();
+    }
+
+    public void setAssociate(boolean state) {
+        mAssociate = state;
+    }
+
+    public boolean isAssociate() {
+        return mAssociate;
     }
 
     /*
@@ -454,6 +464,7 @@ public class BtPusherService extends Service {
         }
 
         btManager.disconnectAndRemove(mDeviceAdress);
+        Log.i(TAG, "change state PROCESS_END");
         mState = ButtonPusherState.PROCESS_END;
         changeState(mState);
         mState = ButtonPusherState.NONE;
@@ -600,7 +611,7 @@ public class BtPusherService extends Service {
         if (mTimeoutTask != null) {
             mTimeoutTask.cancel(true);
         }
-        mListener = null;
+        //mListener = null;
         btManager.stopScan();
         btManager.clearScanningList();
         btManager.disconnectAndRemove(mDeviceAdress);

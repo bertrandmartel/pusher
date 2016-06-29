@@ -58,6 +58,8 @@ public class PushSingleton {
 
     private boolean mOneSHot = false;
 
+    private boolean mAssociate = false;
+
     public PushSingleton() {
 
     }
@@ -76,6 +78,13 @@ public class PushSingleton {
             }
         } catch (IllegalArgumentException e) {
             e.printStackTrace();
+        }
+    }
+
+    public void setAssociate(boolean state) {
+        mAssociate = state;
+        if (mService != null) {
+            mService.setAssociate(mAssociate);
         }
     }
 
@@ -110,11 +119,12 @@ public class PushSingleton {
                             unbindService(context);
                         }
                     });
+                    mService.setAssociate(mAssociate);
                 }
             };
             bindService(context);
         } else {
-            Log.i(TAG, "already pushing...");
+            Log.v(TAG, "already pushing...");
         }
     }
 
@@ -128,6 +138,7 @@ public class PushSingleton {
 
             Log.v(TAG, "connected to service");
             mService = ((BtPusherService.LocalBinder) service).getService();
+            mService.setAssociate(mAssociate);
 
             if (mListener != null) {
                 mListener.onBind();
