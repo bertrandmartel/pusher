@@ -198,9 +198,7 @@ void Config::add_device(char * device_id,char * xor_key){
 
 void Config::print_all_config(){
   
-  uint32_t *save_ptr = device_config;
-
-  save_ptr = ADDRESS_OF_PAGE(DEVICE_CONFIG_STORAGE);
+  uint32_t *save_ptr = ADDRESS_OF_PAGE(DEVICE_CONFIG_STORAGE);
 
   device *item = 0;
 

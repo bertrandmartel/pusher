@@ -607,7 +607,7 @@ void Process::executeCmd(byte *check){
 
         //record xor / device id
         config->add_device(device_id,xor_key);
-
+        
         byte key_data[64];
         byte iv_data[64];
 
