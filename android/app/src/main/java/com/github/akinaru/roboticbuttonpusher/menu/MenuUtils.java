@@ -52,27 +52,43 @@ public class MenuUtils {
 
         switch (menuItem.getItemId()) {
             case R.id.exit_item: {
-                buttonPusher.disassociate();
+                if (buttonPusher.giveUpNoPermission()) {
+                    buttonPusher.disassociate();
+                } else {
+                    buttonPusher.requestPermission();
+                }
                 break;
             }
             case R.id.password_item: {
                 if (buttonPusher != null) {
-                    DevicePasswordDialog dialog = new DevicePasswordDialog(buttonPusher);
-                    dialog.show();
+                    if (buttonPusher.giveUpNoPermission()) {
+                        DevicePasswordDialog dialog = new DevicePasswordDialog(buttonPusher);
+                        dialog.show();
+                    } else {
+                        buttonPusher.requestPermission();
+                    }
                 }
                 break;
             }
             case R.id.keys_item: {
                 if (buttonPusher != null) {
-                    KeysDialog dialog = new KeysDialog(buttonPusher);
-                    dialog.show();
+                    if (buttonPusher.giveUpNoPermission()) {
+                        KeysDialog dialog = new KeysDialog(buttonPusher);
+                        dialog.show();
+                    } else {
+                        buttonPusher.requestPermission();
+                    }
                 }
                 break;
             }
             case R.id.message_item: {
                 if (buttonPusher != null) {
-                    DeviceMessageDialog dialog = new DeviceMessageDialog(buttonPusher);
-                    dialog.show();
+                    if (buttonPusher.giveUpNoPermission()) {
+                        DeviceMessageDialog dialog = new DeviceMessageDialog(buttonPusher);
+                        dialog.show();
+                    } else {
+                        buttonPusher.requestPermission();
+                    }
                 }
                 break;
             }
