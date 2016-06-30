@@ -332,6 +332,18 @@ public class BtPusherService extends Service {
                     if (mTimeoutTask != null) {
                         mTimeoutTask.cancel(true);
                     }
+                } else if (mState == ButtonPusherState.SEND_COMMAND) {
+                    mState = ButtonPusherState.NONE;
+                    if (mTimeoutTask != null) {
+                        mTimeoutTask.cancel(true);
+                    }
+                    Log.v(TAG, "retrying...");
+                    mExecutor.schedule(new Runnable() {
+                        @Override
+                        public void run() {
+                            startPushTask();
+                        }
+                    }, 250, TimeUnit.MILLISECONDS);
                 }
             } else if (BluetoothEvents.BT_EVENT_DEVICE_CONNECTED.equals(action)) {
 
