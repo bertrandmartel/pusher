@@ -497,10 +497,10 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
         String serialStr = Build.SERIAL;
 
-        if (serialStr.length() > 8) {
-            serialStr = serialStr.substring(0, 8);
-        } else if (serialStr.length() < 8) {
-            for (int i = serialStr.length(); i < 8; i++) {
+        if (serialStr.length() > 16) {
+            serialStr = serialStr.substring(0, 16);
+        } else if (serialStr.length() < 16) {
+            for (int i = serialStr.length(); i < 16; i++) {
                 serialStr += "0";
             }
         }
