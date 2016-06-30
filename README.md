@@ -15,6 +15,10 @@ Mechanical switch-button-pusher securely controlled via Bluetooth LE with RFduin
 * <b>/android</b> - android application to control Bluetooth Button Pusher
 * <b>/hardware</b> - wiring diagram, schematics & BOM
 
+## Demo
+
+
+
 ## Build
 
 ### Get source code
@@ -39,9 +43,9 @@ cd android
 ./gradlew build
 ```
 
-## Application screenshot
+## [Firmware specifications](firmware/README.md)
 
-
+## [Hardware specifications](hardware/README.md)
 
 ## External library
 
