@@ -121,6 +121,8 @@ public class BtPusherService extends Service {
         this.mPassword = password;
     }
 
+    private boolean btState = false;
+
     public void sendAssociationCode(String code) {
 
         if (mTimeoutTask != null) {
@@ -478,6 +480,9 @@ public class BtPusherService extends Service {
         changeState(mState);
         mState = ButtonPusherState.NONE;
         changeState(mState);
+        if (!btState) {
+            BluetoothAdapter.getDefaultAdapter().disable();
+        }
     }
 
     private void sendFailure(ButtonPusherError error) {
@@ -489,6 +494,9 @@ public class BtPusherService extends Service {
         btManager.disconnectAndRemove(mDeviceAdress);
         mState = ButtonPusherState.NONE;
         changeState(mState);
+        if (!btState) {
+            BluetoothAdapter.getDefaultAdapter().disable();
+        }
     }
 
     private void changeState(final ButtonPusherState state) {
@@ -596,6 +604,8 @@ public class BtPusherService extends Service {
     private void chainTasks() {
 
         if (mState == ButtonPusherState.NONE) {
+
+            btState = BluetoothAdapter.getDefaultAdapter().isEnabled();
 
             if (!BluetoothAdapter.getDefaultAdapter().isEnabled()) {
                 mTimeoutTask = mExecutor.schedule(new Runnable() {
