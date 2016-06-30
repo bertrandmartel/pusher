@@ -34,6 +34,8 @@ import android.view.Menu;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.widget.FrameLayout;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.github.akinaru.roboticbuttonpusher.PushSingleton;
@@ -92,6 +94,11 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
 
         dotProgressBar = (DotProgressBar) findViewById(R.id.dot_progress_bar);
         mFailureButton = (FloatingActionButton) findViewById(R.id.failure_button);
+
+        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
+            Toast.makeText(this, "your device has no BLE feature", Toast.LENGTH_LONG).show();
+            finish();
+        }
 
         mAnimationScaleUp.setAnimationListener(new Animation.AnimationListener() {
             @Override
@@ -224,12 +231,10 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
         });
         if (Build.VERSION.SDK_INT >= 23) {
             if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                Log.i(TAG, "requesting location permission");
+                Log.v(TAG, "requesting location permission");
                 requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_PERMISSION_COARSE_LOCATION);
             }
         }
-
-        Log.i(TAG, "ok");
         mSingleton.bindService(getApplicationContext());
     }
 

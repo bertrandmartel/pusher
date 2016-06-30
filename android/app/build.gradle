@@ -6,7 +6,7 @@ android {
 
     defaultConfig {
         applicationId "com.github.akinaru.roboticbuttonpusher"
-        minSdkVersion 17
+        minSdkVersion 18
         targetSdkVersion 23
         versionCode 1
         versionName "1.0"
@@ -54,8 +54,8 @@ dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile fileTree(dir: "$buildDir/native-libs", include: 'native-libs.jar')
     testCompile 'junit:junit:4.12'
-    compile "com.android.support:appcompat-v7:23.0.1"
-    compile 'com.android.support:design:23.0.1'
+    compile "com.android.support:appcompat-v7:23.3.0"
+    compile 'com.android.support:design:23.3.0'
     compile 'com.android.support:recyclerview-v7:+'
     compile 'com.github.silvestrpredko:dot-progress-bar:0.1.4@aar'
 }

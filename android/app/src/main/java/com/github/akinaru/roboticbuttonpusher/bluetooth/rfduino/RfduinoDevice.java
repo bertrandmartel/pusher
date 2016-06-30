@@ -491,6 +491,44 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
         return new String(hexChars);
     }
 
+    private byte[] getSerial() {
+
+        Log.i(TAG, Build.SERIAL);
+
+        String serialStr = Build.SERIAL;
+
+        if (serialStr.length() > 8) {
+            serialStr = serialStr.substring(0, 8);
+        } else if (serialStr.length() < 8) {
+            for (int i = serialStr.length(); i < 8; i++) {
+                serialStr += "0";
+            }
+        }
+        byte[] serial = hexStringToByteArray(serialStr);
+
+        if (serial.length > 8) {
+
+            byte[] tmp = new byte[8];
+            System.arraycopy(serial, 0, tmp, 0, 8);
+
+            return tmp;
+
+        } else if (serial.length < 8) {
+
+            byte[] tmp = new byte[8];
+            System.arraycopy(serial, 0, tmp, 0, serial.length);
+
+            for (int i = serial.length; i < 8; i++) {
+                tmp[i] = 0x00;
+            }
+
+            return tmp;
+
+        } else {
+            return serial;
+        }
+    }
+
     private byte[] buildAssociationStatusRequest(byte[] token) {
 
         if (token.length < 20) {
@@ -503,7 +541,7 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
             }
 
             byte[] data = new byte[16];
-            byte[] serial = hexStringToByteArray(Build.SERIAL);
+            byte[] serial = getSerial();
 
             for (int j = 0; j < 8; j++) {
                 data[j] = serial[j];
@@ -546,7 +584,7 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
             }
 
             byte[] data = new byte[36 + TOP_MESSAGE_MAX_LENGTH];
-            byte[] serial = hexStringToByteArray(Build.SERIAL);
+            byte[] serial = getSerial();
 
             for (int j = 0; j < 8; j++) {
                 data[j] = serial[j];
@@ -599,7 +637,7 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
             }
 
             byte[] data = new byte[36];
-            byte[] serial = hexStringToByteArray(Build.SERIAL);
+            byte[] serial = getSerial();
 
             for (int j = 0; j < 8; j++) {
                 data[j] = serial[j];
@@ -671,7 +709,7 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
         if (code.toUpperCase().matches("[0123456789ABCDEF]*") && (code.length() % 2 == 0)) {
 
             byte[] codeBa = hexStringToByteArray(code.toUpperCase());
-            byte[] serial = hexStringToByteArray(Build.SERIAL);
+            byte[] serial = getSerial();
             byte[] data = new byte[36];
 
             byte[] decodedVal = new byte[28];
@@ -721,7 +759,7 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
         if (code.toUpperCase().matches("[0123456789ABCDEF]*") && (code.length() % 2 == 0)) {
 
             byte[] codeBa = hexStringToByteArray(code.toUpperCase());
-            byte[] serial = hexStringToByteArray(Build.SERIAL);
+            byte[] serial = getSerial();
             byte[] data = new byte[64];
 
             byte[] decodedVal = new byte[56];
@@ -780,7 +818,7 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
         if (code.toUpperCase().matches("[0123456789ABCDEF]*") && (code.length() % 2 == 0)) {
 
             byte[] codeBa = hexStringToByteArray(code.toUpperCase());
-            byte[] serial = hexStringToByteArray(Build.SERIAL);
+            byte[] serial = getSerial();
             byte[] data = new byte[8 + 32 + 8];
 
             for (int j = 0; j < 8; j++) {
