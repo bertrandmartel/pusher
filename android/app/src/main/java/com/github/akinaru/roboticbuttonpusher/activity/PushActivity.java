@@ -34,8 +34,6 @@ import android.view.Menu;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
-import android.widget.FrameLayout;
-import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.github.akinaru.roboticbuttonpusher.PushSingleton;
@@ -158,6 +156,7 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
                             button.startAnimation(mAnimationDefaultScaleUp);
                         } else {
                             buttonAssociated.setVisibility(View.VISIBLE);
+                            buttonAssociated.setVisibility(View.VISIBLE);
                             buttonAssociated.startAnimation(mAnimationDefaultScaleUp);
                         }
                     }
@@ -195,40 +194,48 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
             @Override
             public void onClick(View v) {
 
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        button.setVisibility(View.GONE);
-                        dotProgressBar.setVisibility(View.VISIBLE);
-                        dotProgressBar.setAlpha(1);
-                    }
-                });
+                if (giveUpNoPermission()) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            button.setVisibility(View.GONE);
+                            dotProgressBar.setVisibility(View.VISIBLE);
+                            dotProgressBar.setAlpha(1);
+                        }
+                    });
 
+                    clearReplaceDebugTv("Scanning for device ...");
 
-                clearReplaceDebugTv("Scanning for device ...");
-
-                mSingleton.startPushTask();
+                    mSingleton.startPushTask();
+                } else {
+                    requestPermission();
+                }
             }
         });
 
         buttonAssociated.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        buttonAssociated.setVisibility(View.GONE);
-                        dotProgressBar.setVisibility(View.VISIBLE);
-                        dotProgressBar.setAlpha(1);
-                    }
-                });
 
+                if (giveUpNoPermission()) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            buttonAssociated.setVisibility(View.GONE);
+                            dotProgressBar.setVisibility(View.VISIBLE);
+                            dotProgressBar.setAlpha(1);
+                        }
+                    });
 
-                clearReplaceDebugTv("Scanning for device ...");
+                    clearReplaceDebugTv("Scanning for device ...");
 
-                mSingleton.startPushTask();
+                    mSingleton.startPushTask();
+                } else {
+                    requestPermission();
+                }
             }
         });
+
         if (Build.VERSION.SDK_INT >= 23) {
             if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 Log.v(TAG, "requesting location permission");
@@ -238,20 +245,22 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
         mSingleton.bindService(getApplicationContext());
     }
 
+    private void showPermissionRequired() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(PushActivity.this, "location permissions is required for BLE scan", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            String permissions[], int[] grantResults) {
         switch (requestCode) {
             case REQUEST_PERMISSION_COARSE_LOCATION: {
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-
-                } else {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(PushActivity.this, "permission coarse location required for ble scan", Toast.LENGTH_SHORT).show();
-                        }
-                    });
+                if (grantResults.length > 0 && grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                    showPermissionRequired();
                 }
             }
         }
@@ -345,6 +354,23 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
         mSingleton.stopPushTask();
         mSingleton.unbindService(getApplicationContext());
         Log.v(TAG, "onDestroy");
+    }
+
+    @Override
+    public boolean giveUpNoPermission() {
+        if (Build.VERSION.SDK_INT >= 23) {
+            if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public void requestPermission(){
+        if (Build.VERSION.SDK_INT >= 23) {
+            requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_PERMISSION_COARSE_LOCATION);
+        }
     }
 
     /**

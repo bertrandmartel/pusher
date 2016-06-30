@@ -111,4 +111,16 @@ public interface IButtonPusher {
      */
     void setMessage(String topMessage, String bottomMessage);
 
+    /**
+     * test if user accepted location permission
+     *
+     * @return
+     */
+    boolean giveUpNoPermission();
+
+    /**
+     * request the location permission
+     */
+    void requestPermission();
+
 }
