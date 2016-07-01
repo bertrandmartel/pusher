@@ -94,13 +94,13 @@ public class BluetoothDeviceConn implements IBluetoothDeviceConn {
 
                 if (newState == BluetoothProfile.STATE_CONNECTED) {
 
-                    Log.i(TAG, "Connected to GATT server.");
-                    Log.i(TAG, "Attempting to start service discovery:" + gatt.discoverServices());
+                    Log.v(TAG, "Connected to GATT server.");
+                    Log.v(TAG, "Attempting to start service discovery:" + gatt.discoverServices());
 
                 } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
 
                     connected = false;
-                    Log.i(TAG, "Disconnected from GATT server.");
+                    Log.v(TAG, "Disconnected from GATT server.");
 
                     if (status != 133) {
                         manager.broadcastUpdateStringList(BluetoothEvents.BT_EVENT_DEVICE_DISCONNECTED, new ArrayList<String>());
@@ -114,7 +114,7 @@ public class BluetoothDeviceConn implements IBluetoothDeviceConn {
                     }
 
                     if (BluetoothDeviceConn.this.gatt != null) {
-                        Log.i(TAG, "connection close clean");
+                        Log.v(TAG, "connection close clean");
                         BluetoothDeviceConn.this.gatt.close();
                     }
                     if (remove) {
@@ -182,7 +182,7 @@ public class BluetoothDeviceConn implements IBluetoothDeviceConn {
                                              int status) {
                 manager.getEventManager().set();
                 if (device != null) {
-                    Log.i(TAG, "onCharacteristicRead");
+                    Log.v(TAG, "onCharacteristicRead");
                     device.notifyCharacteristicReadReceived(characteristic);
                 }
             }
@@ -198,7 +198,7 @@ public class BluetoothDeviceConn implements IBluetoothDeviceConn {
                                                 BluetoothGattCharacteristic characteristic) {
                 manager.getEventManager().set();
                 if (device != null) {
-                    Log.i(TAG, "onCharacteristicChanged");
+                    Log.v(TAG, "onCharacteristicChanged");
                     device.notifyCharacteristicChangeReceived(characteristic);
                 }
             }

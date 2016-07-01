@@ -173,6 +173,7 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
         mImgSelection = (FloatingActionButton) findViewById(R.id.img_selection);
 
         mSingleton = PushSingleton.getInstance();
+        mSingleton.unbindService(this);
         mSingleton.setSingletonListener(this);
         mSingleton.setAssociate(true);
 
@@ -367,7 +368,7 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
     }
 
     @Override
-    public void requestPermission(){
+    public void requestPermission() {
         if (Build.VERSION.SDK_INT >= 23) {
             requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_PERMISSION_COARSE_LOCATION);
         }
@@ -521,6 +522,8 @@ public class PushActivity extends BaseActivity implements ISingletonListener {
     public void onResume() {
         super.onResume();
         mSingleton.setAssociate(true);
+        mSingleton.setSingletonListener(this);
+        mSingleton.bindService(getApplicationContext());
         dotProgressBar.setAlpha(0);
     }
 

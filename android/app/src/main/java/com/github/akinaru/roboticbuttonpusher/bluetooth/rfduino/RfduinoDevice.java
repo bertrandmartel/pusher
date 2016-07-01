@@ -493,8 +493,6 @@ public class RfduinoDevice extends BluetoothDeviceAbstr implements IRfduinoDevic
 
     private byte[] getSerial() {
 
-        Log.i(TAG, Build.SERIAL);
-
         String serialStr = Build.SERIAL;
 
         if (serialStr.length() > 16) {
