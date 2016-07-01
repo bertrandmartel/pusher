@@ -164,23 +164,10 @@ public class BluetoothCustomManager implements IBluetoothCustomManager {
                 if (device.getAddress() != null &&
                         device.getName() != null) {
 
-                    if (device.getName().equals("RFdroid")) {
-                        dispatchRFdroid(device, rssi, scanRecord);
-                    } else {
-                        dispatchBtDevices(device, rssi, scanRecord);
-                    }
+                    dispatchBtDevices(device, rssi, scanRecord);
                 }
             }
         };
-    }
-
-    private void dispatchRFdroid(BluetoothDevice device, int rssi, final byte[] scanRecord) {
-
-        if (scanningList.containsKey(device.getAddress())) {
-
-        } else {
-            Log.i(TAG, "found a RFdroid");
-        }
     }
 
     private void dispatchBtDevices(BluetoothDevice device, int rssi, final byte[] scanRecord) {
@@ -189,7 +176,7 @@ public class BluetoothCustomManager implements IBluetoothCustomManager {
 
         } else {
 
-            Log.i(TAG, "found a new Bluetooth device : " + device.getName() + " : " + device.getAddress());
+            Log.v(TAG, "found a new Bluetooth device : " + device.getName() + " : " + device.getAddress());
 
             scanningList.put(device.getAddress(), device);
 
@@ -271,7 +258,7 @@ public class BluetoothCustomManager implements IBluetoothCustomManager {
 
         if (alreadyInList) {
 
-            Log.i(TAG, "reusing same connection");
+            Log.v(TAG, "reusing same connection");
 
             BluetoothDeviceConn conn = (BluetoothDeviceConn) bluetoothConnectionList.get(address);
 
@@ -283,7 +270,7 @@ public class BluetoothCustomManager implements IBluetoothCustomManager {
 
             bluetoothConnectionList.put(address, conn);
 
-            Log.i(TAG, "new connection");
+            Log.v(TAG, "new connection");
             //connect to gatt server on the device
             conn.setGatt(device.connectGatt(context, false, conn.getGattCallback()));
         }
@@ -454,7 +441,7 @@ public class BluetoothCustomManager implements IBluetoothCustomManager {
         if (bluetoothConnectionList.containsKey(deviceAddress)) {
 
             if (bluetoothConnectionList.get(deviceAddress).getBluetoothGatt() != null && bluetoothConnectionList.get(deviceAddress).isConnected()) {
-                Log.i(TAG, "disconnect device");
+                Log.v(TAG, "disconnect device");
                 bluetoothConnectionList.get(deviceAddress).getBluetoothGatt().disconnect();
 
                 if (!waitingForDisconnectionList.containsKey(deviceAddress)) {
@@ -462,12 +449,12 @@ public class BluetoothCustomManager implements IBluetoothCustomManager {
                     ScheduledFuture<?> task = executor.schedule(new Runnable() {
                         @Override
                         public void run() {
-                            Log.i(TAG, "connection forced close");
+                            Log.v(TAG, "connection forced close");
                             bluetoothConnectionList.get(deviceAddress).getBluetoothGatt().close();
                             waitingForDisconnectionList.remove(deviceAddress);
 
                             if (remove) {
-                                Log.i(TAG, "removing device ...");
+                                Log.v(TAG, "removing device ...");
                                 bluetoothConnectionList.remove(deviceAddress);
                                 try {
                                     Thread.sleep(500);
@@ -486,10 +473,10 @@ public class BluetoothCustomManager implements IBluetoothCustomManager {
 
             } else {
 
-                Log.i(TAG, "removing not connected device");
+                Log.v(TAG, "removing not connected device");
 
                 if (remove) {
-                    Log.i(TAG, "removing device ...");
+                    Log.v(TAG, "removing device ...");
                     bluetoothConnectionList.remove(deviceAddress);
                     waitingForDisconnectionList.remove(deviceAddress);
                     return false;

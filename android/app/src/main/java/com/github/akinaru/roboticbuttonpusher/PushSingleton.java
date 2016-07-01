@@ -67,7 +67,7 @@ public class PushSingleton {
     public void bindService(Context context) {
         //bind to service
         Intent intent = new Intent(context, BtPusherService.class);
-        mBound = context.bindService(intent, mServiceConnection, Activity.BIND_AUTO_CREATE);
+        context.bindService(intent, mServiceConnection, Activity.BIND_AUTO_CREATE);
     }
 
     public void unbindService(Context context) {
@@ -103,7 +103,7 @@ public class PushSingleton {
                                 case PROCESS_END:
                                     mOneSHot = false;
                                     Toast.makeText(context, "push success", Toast.LENGTH_SHORT).show();
-                                    mService.setListener(null);
+                                    //mService.setListener(null);
                                     unbindService(context);
                                     break;
                                 default:
@@ -115,14 +115,25 @@ public class PushSingleton {
                         public void onError(ButtonPusherError error) {
                             mOneSHot = false;
                             Toast.makeText(context, "push failed", Toast.LENGTH_SHORT).show();
-                            mService.setListener(null);
+                            //mService.setListener(null);
                             unbindService(context);
                         }
                     });
                     mService.setAssociate(mAssociate);
                 }
             };
-            bindService(context);
+
+            if (!mBound) {
+                bindService(context);
+            } else {
+                mService.setAssociate(mAssociate);
+
+                if (mListener != null) {
+                    mListener.onBind();
+                }
+                mOneSHot = false;
+                startPushTask();
+            }
         } else {
             Log.v(TAG, "already pushing...");
         }
@@ -136,6 +147,7 @@ public class PushSingleton {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
 
+            mBound = true;
             Log.v(TAG, "connected to service");
             mService = ((BtPusherService.LocalBinder) service).getService();
             mService.setAssociate(mAssociate);

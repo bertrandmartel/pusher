@@ -65,7 +65,7 @@ public class ButtonWidgetProvider extends AppWidgetProvider {
         super.onReceive(context, intent);
 
         if (intent.getAction().equals(Common.ACTION_START)) {
-            Log.i("TAG", "onreceive");
+            Log.v("TAG", "onreceive");
             mSingleton.setAssociate(false);
             mSingleton.pushOneShot(context.getApplicationContext());
         }
