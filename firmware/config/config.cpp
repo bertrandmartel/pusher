@@ -65,22 +65,28 @@ void Config::init(LiquidCrystal *lcd,AES *aes){
 	this->aes = aes;
 }
 
-void Config::write_host_config(device *item){
+void Config::write_host_config(){
 
-  int rc = flashWriteBlock(device_config, item, sizeof(device));
-  device_config+=10;
+  device_config = ADDRESS_OF_PAGE(DEVICE_CONFIG_STORAGE);
   
-  #ifdef __PRINT_LOG__
-    if (rc == 0){
-      Serial.println("Success");
-    }
-    else if (rc == 1){
-        Serial.println("Error - the flash page is reserved");
-      }
-    else if (rc == 2){
-        Serial.println("Error - the flash page is used by the sketch");
-      }
-  #endif //__PRINT_LOG__
+  int rc = flashWriteBlock(device_config, device_ptr, sizeof(device)*config.device_num);
+  /*
+  if (rc == 0){
+    lcd->clear();
+    lcd->print("SUCCESS : ");
+    delay(2000);
+  }
+  else if (rc == 1){
+    lcd->clear();
+    lcd->print("RESERVED : ");
+    delay(2000);
+  }
+  else if (rc == 2){
+    lcd->clear();
+    lcd->print("USED : ");
+    delay(2000);
+  }
+  */
 }
 
 void Config::save_config(bool default_config){
@@ -152,7 +158,8 @@ void Config::save_config(bool default_config){
           Serial.println("saving new associated device");
         #endif //__PRINT_LOG__
 
-        write_host_config(&device_ptr[config.device_num-1]);
+        flashPageErase(PAGE_FROM_ADDRESS(ADDRESS_OF_PAGE(DEVICE_CONFIG_STORAGE)));
+        write_host_config();
       }
     }
 }
@@ -208,12 +215,12 @@ void Config::print_all_config(){
     Serial.print(config.device_num);
     Serial.println(") : ");
   #endif //__PRINT_LOG__
-  
+
   for (int i = 0; i< config.device_num;i++){
     item = (device*)save_ptr;
 
-    strcpy(device_ptr[i].device_id, item->device_id);
-    strcpy(device_ptr[i].xor_key, item->xor_key);
+    memcpy(device_ptr[i].device_id, item->device_id,8);
+    memcpy(device_ptr[i].xor_key, item->xor_key,32);
 
     #ifdef __PRINT_LOG__
       for (int j = 0 ; j < 8;j++){
@@ -259,28 +266,30 @@ void Config::remove_device(char * device_id){
 
   int index = -1;
 
-  while (index!=-2){
+  for (int i = 0; i< config.device_num;i++){
 
-    index = -1;
-    for (int i = 0; i< MAX_ASSOCIATED_DEVICE;i++){
+    if (memcmp(device_ptr[i].device_id,device_id,8)==0){
+      index=i;
+    }
+  }
 
-      if (memcmp(device_ptr[i].device_id,device_id,8)==0){
-        index=i;
+  if ((index>=0) && (index!=MAX_ASSOCIATED_DEVICE)){
+
+    config.device_num--;
+
+    int index_limit = config.device_num - index;
+      
+    if (index_limit > 0){
+
+      for (int i = index;i<index_limit;i++){
+
+        memcpy(device_ptr[i].device_id, device_ptr[i+1].device_id,8);
+        memcpy(device_ptr[i].xor_key  , device_ptr[i+1].xor_key,32);
       }
     }
-
-    if (index<0){
-      index=-2;
-    }
-    if ((index>=0) && (index!=MAX_ASSOCIATED_DEVICE)){
-      for (int i = index;i<MAX_ASSOCIATED_DEVICE-1;i++){
-        strcpy(device_ptr[i].device_id, device_ptr[i+1].device_id);
-        strcpy(device_ptr[i].xor_key  , device_ptr[i+1].xor_key);
-      }
-      config.device_num--;
-      add_device_pending=true;
-      print_all_config();
-    }
+    
+    add_device_pending=true;
+    //print_all_config();
   }
 }
 
