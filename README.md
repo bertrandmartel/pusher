@@ -4,20 +4,19 @@
 [![License](http://badge.kloud51.com/pypi/l/html2text.svg)](LICENSE.md)
 
 [![Download Bluetooth Button Pusher from Google Play](http://www.android.com/images/brand/android_app_on_play_large.png)](https://play.google.com/store/apps/details?id=com.github.akinaru.roboticbuttonpusher)
+[![Download latest debug from drone.io](https://raw.githubusercontent.com/kageiit/images-host/master/badges/drone-io-badge.png)](https://drone.io/github.com/akinaru/bluetooth-button-pusher/files/android/app/build/outputs/apk/app-debug.apk)
 
 Mechanical switch-button-pusher securely controlled via Bluetooth LE with RFduino module/LCD panel & via Android smartphone
 
-![screenshot](img/set.jpg)
+![demo](img/demo.gif)
+
+![screenshot](img/lcd.jpg)
 
 ## Project structure
 
 * <b>/firmware</b> - microcontroller code written for RFduino
 * <b>/android</b> - android application to control Bluetooth Button Pusher
 * <b>/hardware</b> - wiring diagram, schematics & BOM
-
-## Demo
-
-
 
 ## Build
 
