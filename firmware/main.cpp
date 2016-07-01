@@ -119,12 +119,17 @@ void interrupt(){
   NRF_GPIO->PIN_CNF[INTERRUPT_PIN] = (GPIO_PIN_CNF_PULL_Pulldown<<GPIO_PIN_CNF_PULL_Pos);
 }
 
+void RFduinoBLE_onConnect()
+{
+  lcd_printer.print_lcd_message("A device is","connected");
+}
+
 void RFduinoBLE_onDisconnect(){
 
   #ifdef __PRINT_LOG__
   Serial.println("onDisconnect");
   #endif //__PRINT_LOG__
-  
+
   process.clear();
 
   interrupt();

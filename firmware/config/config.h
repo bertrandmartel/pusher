@@ -30,7 +30,7 @@ public:
 	Config();
 	~Config();
 	void init(LiquidCrystal *lcd,AES *aes);
-	void write_host_config(device *item);
+	void write_host_config();
 	void save_config(bool default_config);
 	void add_device(char * device_id,char * xor_key);
 	void print_all_config();
