@@ -73,3 +73,35 @@ The critical APIs are secured by an additionnal password which must be changed w
 * The limit for GATT characteristic payload is 18 octet. The above commands load more than 18 octet, so payload is divided in bunch of 18 octet sent separatly. The first frame sent to Rfduino device is a frame containing the command code and the length of the payload. When the total payload is received from the device, it is processed directly and the response is returned via notification on characteristic `00002221-0000-1000-8000-00805f9b34fb`.
 
 * The same protocol is used for receiving data from the Rfduino device. Data is split into bunch of 18 octet and sent until everything is received.
+
+## Persistent storage
+
+### Device configuration
+
+Device configuration features a list of `device` structure featuring : 
+
+| prototype          |   description    |
+|--------------------|------------------------|
+| char device_id[8]  |  device serial |
+| char xor_key[32]   |  XOR key |
+
+The maximum associated device number is 25 device (page size is 1024 octet)
+
+### Global configuration
+
+Global configuration features :
+
+| prototype          |   description    |
+|--------------------|------------------------|
+| char pass[4*16]    |  encrypted password |
+| uint16_t flag      |  flag to check against default configuration |
+| uint8_t device_num |  device_num for the number of smartphone device associated |
+| char key[32]       |  AES key |
+| char iv[16]        |  AES iv  |
+| char top_message[28] | LCD panel top default message |
+| char bottom_message[28] | LCD panel bottom default message |
+
+### Memory page
+
+* smartphone devices configuration is stored on page 250
+* global configuration is stored on page 251
