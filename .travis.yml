@@ -28,4 +28,4 @@ install:
 script:
   - ulimit -s 1082768
   - cd android && ./gradlew clean build connectedCheck
-  - cd ../firmware && make
+  - cd ../firmware && make build
