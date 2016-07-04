@@ -12,6 +12,18 @@ Mechanical switch-button-pusher securely controlled via Bluetooth LE with RFduin
 
 ![screenshot](img/lcd.jpg)
 
+<hr/>
+
+Application layer association security  :
+
+* AES 256 encryption
+* user code for key exchange
+* additional password protection
+
+protected against MIM & Replay attack
+
+![pairing](img/pairing.gif)
+
 ## Project structure
 
 * <b>/firmware</b> - microcontroller code written for RFduino

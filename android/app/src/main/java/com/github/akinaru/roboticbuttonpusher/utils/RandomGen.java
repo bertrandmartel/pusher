@@ -23,7 +23,7 @@ import java.util.Random;
 /**
  * generator for random string
  *
- * @author Bertrand Martel Bouygues Telecom
+ * @author Bertrand Martel
  */
 public class RandomGen {
 
