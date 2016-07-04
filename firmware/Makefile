@@ -27,3 +27,5 @@ clean:
 
 distclean:
 	$(MAKE) -C rfduino-makefile distclean
+build:
+	$(MAKE) -C rfduino-makefile rfduino_lib build
