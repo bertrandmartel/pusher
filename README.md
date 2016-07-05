@@ -1,12 +1,12 @@
 # Pusher
 
-https://akinaru.github.io/bluetooth-button-pusher
+https://akinaru.github.io/pusher
 
-[![Build Status](https://travis-ci.org/akinaru/bluetooth-button-pusher.svg?branch=master)](https://travis-ci.org/akinaru/bluetooth-button-pusher)
+[![Build Status](https://travis-ci.org/akinaru/bluetooth-button-pusher.svg?branch=master)](https://travis-ci.org/akinaru/pusher)
 [![License](http://badge.kloud51.com/pypi/l/html2text.svg)](LICENSE.md)
 
 [![Download Bluetooth Button Pusher from Google Play](http://www.android.com/images/brand/android_app_on_play_large.png)](https://play.google.com/store/apps/details?id=com.github.akinaru.roboticbuttonpusher)
-[![Download latest debug from drone.io](https://raw.githubusercontent.com/kageiit/images-host/master/badges/drone-io-badge.png)](https://drone.io/github.com/akinaru/bluetooth-button-pusher/files/android/app/build/outputs/apk/app-debug.apk)
+[![Download latest debug from drone.io](https://raw.githubusercontent.com/kageiit/images-host/master/badges/drone-io-badge.png)](https://drone.io/github.com/akinaru/pusher/files/android/app/build/outputs/apk/app-debug.apk)
 
 Mechanical wall switch button pusher securely controlled via Bluetooth LE with RFduino module/LCD panel & via Android smartphone
 
@@ -37,7 +37,7 @@ protected against MIM & Replay attack
 ### Get source code
 
 ```
-git clone git@github.com:akinaru/bluetooth-button-pusher.git
+git clone git@github.com:akinaru/pusher.git
 cd bluetooth-button-pusher
 git submodule update --init --recursive
 ```
