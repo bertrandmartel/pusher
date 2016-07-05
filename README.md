@@ -2,10 +2,10 @@
 
 https://akinaru.github.io/pusher
 
-[![Build Status](https://travis-ci.org/akinaru/bluetooth-button-pusher.svg?branch=master)](https://travis-ci.org/akinaru/pusher)
+[![Build Status](https://travis-ci.org/akinaru/pusher.svg?branch=master)](https://travis-ci.org/akinaru/pusher)
 [![License](http://badge.kloud51.com/pypi/l/html2text.svg)](LICENSE.md)
 
-[![Download Bluetooth Button Pusher from Google Play](http://www.android.com/images/brand/android_app_on_play_large.png)](https://play.google.com/store/apps/details?id=com.github.akinaru.roboticbuttonpusher)
+[![Download Pusher from Google Play](http://www.android.com/images/brand/android_app_on_play_large.png)](https://play.google.com/store/apps/details?id=com.github.akinaru.roboticbuttonpusher)
 [![Download latest debug from drone.io](https://raw.githubusercontent.com/kageiit/images-host/master/badges/drone-io-badge.png)](https://drone.io/github.com/akinaru/pusher/files/android/app/build/outputs/apk/app-debug.apk)
 
 Mechanical wall switch button pusher securely controlled via Bluetooth LE with RFduino module/LCD panel & via Android smartphone
@@ -29,7 +29,7 @@ protected against MIM & Replay attack
 ## Project structure
 
 * <b>/firmware</b> - microcontroller code written for RFduino
-* <b>/android</b> - android application to control Bluetooth Button Pusher
+* <b>/android</b> - android application to control device
 * <b>/hardware</b> - wiring diagram, schematics & BOM
 
 ## Build
@@ -38,7 +38,7 @@ protected against MIM & Replay attack
 
 ```
 git clone git@github.com:akinaru/pusher.git
-cd bluetooth-button-pusher
+cd pusher
 git submodule update --init --recursive
 ```
 
@@ -85,11 +85,11 @@ modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either version 3
 of the License, or (at your option) any later version.
 
-Bluetooth Button Pusher is distributed in the hope that it will be useful,
+Pusher is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Bluetooth Button Pusher.  If not, see <http://www.gnu.org/licenses/>.
+along with Pusher.  If not, see <http://www.gnu.org/licenses/>.
 ```
