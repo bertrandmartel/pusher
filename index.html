@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print">
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <title>Bluetooth-button-pusher by akinaru</title>
+  </head>
+
+  <body>
+    <header>
+      <div class="inner">
+        <h1>Bluetooth-button-pusher</h1>
+        <h2>Mechanical button-pusher securely controlled via Bluetooth LE</h2>
+        <a href="https://github.com/akinaru/bluetooth-button-pusher" class="button"><small>View project on</small> GitHub</a>
+      </div>
+    </header>
+
+    <div id="content-wrapper">
+      <div class="inner clearfix">
+        <section id="main-content">
+          <h1>
+<a id="bluetooth-button-pusher" class="anchor" href="#bluetooth-button-pusher" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Bluetooth Button Pusher</h1>
+
+<p><a href="https://travis-ci.org/akinaru/bluetooth-button-pusher"><img src="https://travis-ci.org/akinaru/bluetooth-button-pusher.svg?branch=master" alt="Build Status"></a>
+<a href="LICENSE.md"><img src="http://badge.kloud51.com/pypi/l/html2text.svg" alt="License"></a></p>
+
+<p><a href="https://play.google.com/store/apps/details?id=com.github.akinaru.roboticbuttonpusher"><img src="http://www.android.com/images/brand/android_app_on_play_large.png" alt="Download Bluetooth Button Pusher from Google Play"></a>
+<a href="https://drone.io/github.com/akinaru/bluetooth-button-pusher/files/android/app/build/outputs/apk/app-debug.apk"><img src="https://raw.githubusercontent.com/kageiit/images-host/master/badges/drone-io-badge.png" alt="Download latest debug from drone.io"></a></p>
+
+<p>Mechanical button-pusher securely controlled via Bluetooth LE with RFduino module/LCD panel &amp; via Android smartphone</p>
+
+<p><img src="img/demo.gif" alt="demo"></p>
+
+<p><img src="img/lcd.jpg" alt="screenshot"></p>
+
+<hr>
+
+<p>Application layer association security  :</p>
+
+<ul>
+<li>AES 256 encryption</li>
+<li>user code for key exchange</li>
+<li>additional password protection</li>
+</ul>
+
+<p>protected against MIM &amp; Replay attack</p>
+
+<p><img src="img/pairing.gif" alt="pairing"></p>
+
+<h2>
+<a id="project-structure" class="anchor" href="#project-structure" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Project structure</h2>
+
+<ul>
+<li>
+<b>/firmware</b> - microcontroller code written for RFduino</li>
+<li>
+<b>/android</b> - android application to control Bluetooth Button Pusher</li>
+<li>
+<b>/hardware</b> - wiring diagram, schematics &amp; BOM</li>
+</ul>
+
+<h2>
+<a id="build" class="anchor" href="#build" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Build</h2>
+
+<h3>
+<a id="get-source-code" class="anchor" href="#get-source-code" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Get source code</h3>
+
+<pre><code>git clone git@github.com:akinaru/bluetooth-button-pusher.git
+cd bluetooth-button-pusher
+git submodule update --init --recursive
+</code></pre>
+
+<h3>
+<a id="build-firmware" class="anchor" href="#build-firmware" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Build Firmware</h3>
+
+<pre><code>cd firmware
+make
+</code></pre>
+
+<h3>
+<a id="build-android-app" class="anchor" href="#build-android-app" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Build Android App</h3>
+
+<pre><code>cd android
+./gradlew build
+</code></pre>
+
+<h2>
+<a id="firmware-specifications" class="anchor" href="#firmware-specifications" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a><a href="firmware/README.md">Firmware specifications</a>
+</h2>
+
+<h2>
+<a id="hardware-specifications" class="anchor" href="#hardware-specifications" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a><a href="hardware/README.md">Hardware specifications</a>
+</h2>
+
+<h2>
+<a id="external-library" class="anchor" href="#external-library" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>External library</h2>
+
+<h3>
+<a id="firmware" class="anchor" href="#firmware" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Firmware</h3>
+
+<ul>
+<li>rfduino software : <a href="https://github.com/RFduino/RFduino">https://github.com/RFduino/RFduino</a>
+</li>
+<li>LiquidCrystal arduino library : <a href="https://github.com/arduino-libraries/LiquidCrystal">https://github.com/arduino-libraries/LiquidCrystal</a>
+</li>
+<li>rfduino-makefile : <a href="https://github.com/akinaru/rfduino-makefile">https://github.com/akinaru/rfduino-makefile</a>
+</li>
+<li>AES library by Brian Gladman</li>
+</ul>
+
+<h3>
+<a id="android-application" class="anchor" href="#android-application" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Android application</h3>
+
+<ul>
+<li>smart Android dot progress bar : <a href="https://github.com/silvestrpredko/DotProgressBarExample">https://github.com/silvestrpredko/DotProgressBarExample</a>
+</li>
+<li>AES library by Brian Gladman</li>
+<li>appcompat-v7, design &amp; recyclerview-v7</li>
+</ul>
+
+<h2>
+<a id="license" class="anchor" href="#license" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>License</h2>
+
+<pre><code>Copyright (C) 2016  Bertrand Martel
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 3
+of the License, or (at your option) any later version.
+
+Bluetooth Button Pusher is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Bluetooth Button Pusher.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+</code></pre>
+        </section>
+
+        <aside id="sidebar">
+          <a href="https://github.com/akinaru/bluetooth-button-pusher/zipball/master" class="button">
+            <small>Download</small>
+            .zip file
+          </a>
+          <a href="https://github.com/akinaru/bluetooth-button-pusher/tarball/master" class="button">
+            <small>Download</small>
+            .tar.gz file
+          </a>
+
+          <p class="repo-owner"><a href="https://github.com/akinaru/bluetooth-button-pusher"></a> is maintained by <a href="https://github.com/akinaru">akinaru</a>.</p>
+
+          <p>This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the Architect theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.</p>
+        </aside>
+      </div>
+    </div>
+
+  
+  </body>
+</html>
