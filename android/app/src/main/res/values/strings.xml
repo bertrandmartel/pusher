@@ -1,12 +1,12 @@
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="app_name">Button Pusher</string>
+    <string name="app_name">Pusher</string>
     <string name="drawer_open">Open navigation drawer</string>
     <string name="drawer_close">Close navigation drawer</string>
     <string name="open_source_items">Open Source components</string>
     <string name="about">About</string>
     <string name="copyright">\u00a9 2016 Bertrand Martel</string>
     <string name="github_link">https://github.com/akinaru/bluetooth-button-pusher</string>
-    <string name="bt_device_title">Bluetooth Button Pusher</string>
+    <string name="bt_device_title">Pusher</string>
     <string name="ble_not_supported">Bluetooth Smart is not supported on your device</string>
     <string name="toast_scan_stop">scanning has stopped</string>
     <string name="toast_scan_start">scanning ...</string>
@@ -16,7 +16,7 @@
     <string name="toast_already_scanning">already scanning...</string>
     <string name="connection_to_rfdroid">Connecting ...</string>
     <string name="email_addr">kiruazoldik92@gmail.com</string>
-    <string name="issue_subject">Bluetooth Button Pusher</string>
+    <string name="issue_subject">Pusher</string>
     <string name="report_hint">Your error report here...</string>
     <string name="issue_title">Report a problem</string>
     <string name="scan_no_device">no device detected...</string>
