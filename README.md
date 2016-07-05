@@ -1,4 +1,4 @@
-# Bluetooth Button Pusher
+# Pusher
 
 https://akinaru.github.io/bluetooth-button-pusher
 
