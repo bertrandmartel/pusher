@@ -8,7 +8,7 @@ https://akinaru.github.io/bluetooth-button-pusher
 [![Download Bluetooth Button Pusher from Google Play](http://www.android.com/images/brand/android_app_on_play_large.png)](https://play.google.com/store/apps/details?id=com.github.akinaru.roboticbuttonpusher)
 [![Download latest debug from drone.io](https://raw.githubusercontent.com/kageiit/images-host/master/badges/drone-io-badge.png)](https://drone.io/github.com/akinaru/bluetooth-button-pusher/files/android/app/build/outputs/apk/app-debug.apk)
 
-Mechanical switch-button-pusher securely controlled via Bluetooth LE with RFduino module/LCD panel & via Android smartphone
+Mechanical wall switch button pusher securely controlled via Bluetooth LE with RFduino module/LCD panel & via Android smartphone
 
 ![demo](img/demo.gif)
 
