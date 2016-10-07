@@ -1,7 +1,5 @@
 # Pusher
 
-https://akinaru.github.io/pusher
-
 [![Build Status](https://travis-ci.org/akinaru/pusher.svg?branch=master)](https://travis-ci.org/akinaru/pusher)
 [![License](http://badge.kloud51.com/pypi/l/html2text.svg)](LICENSE.md)
 
