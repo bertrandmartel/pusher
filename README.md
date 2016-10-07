@@ -6,11 +6,11 @@ Mechanical wall switch button pusher securely controlled via Bluetooth LE with R
 
 [![Download Pusher from Google Play](http://www.android.com/images/brand/android_app_on_play_large.png)](https://play.google.com/store/apps/details?id=com.github.akinaru.roboticbuttonpusher)
 
-![demo](img/demo.gif)
+![demo](https://github.com/akinaru/pusher/raw/master/img/demo.gif)
 
-![screenshot](img/lcd.jpg)
+![screenshot](https://github.com/akinaru/pusher/raw/master/img/lcd.jpg)
 
-<hr/>
+***
 
 Application layer association security  :
 
@@ -20,13 +20,13 @@ Application layer association security  :
 
 protected against MIM & Replay attack
 
-![pairing](img/pairing.gif)
+![pairing](https://github.com/akinaru/pusher/raw/master/img/pairing.gif)
 
 ## Project structure
 
-* <b>/firmware</b> - microcontroller code written for RFduino
-* <b>/android</b> - android application to control device
-* <b>/hardware</b> - wiring diagram, schematics & BOM
+* **/firmware** - microcontroller code written for RFduino
+* **/android** - android application to control device
+* **/hardware** - wiring diagram, schematics & BOM
 
 ## Build
 
@@ -52,9 +52,9 @@ cd android
 ./gradlew build
 ```
 
-## [Firmware specifications](firmware/README.md)
+## [Firmware specifications](https://github.com/akinaru/pusher/blob/master/firmware/README.md)
 
-## [Hardware specifications](hardware/README.md)
+## [Hardware specifications](https://github.com/akinaru/pusher/blob/master/hardware/README.md)
 
 ## External library
 
