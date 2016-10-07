@@ -5,10 +5,10 @@ https://akinaru.github.io/pusher
 [![Build Status](https://travis-ci.org/akinaru/pusher.svg?branch=master)](https://travis-ci.org/akinaru/pusher)
 [![License](http://badge.kloud51.com/pypi/l/html2text.svg)](LICENSE.md)
 
+Mechanical wall switch button pusher securely controlled via Bluetooth LE with RFduino module/LCD panel & via Android smartphone
+
 [![Download Pusher from Google Play](http://www.android.com/images/brand/android_app_on_play_large.png)](https://play.google.com/store/apps/details?id=com.github.akinaru.roboticbuttonpusher)
 [![Download latest debug from drone.io](https://raw.githubusercontent.com/kageiit/images-host/master/badges/drone-io-badge.png)](https://drone.io/github.com/akinaru/pusher/files/android/app/build/outputs/apk/app-debug.apk)
-
-Mechanical wall switch button pusher securely controlled via Bluetooth LE with RFduino module/LCD panel & via Android smartphone
 
 ![demo](img/demo.gif)
 
