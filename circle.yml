@@ -11,7 +11,7 @@ test:
     - cd ../firmware && make build
   post:
     - mkdir $CIRCLE_ARTIFACTS/apk
-    - mv fadecandy-app/build/outputs/apk/*.apk $CIRCLE_ARTIFACTS/apk
+    - mv android/app/build/outputs/apk/*.apk $CIRCLE_ARTIFACTS/apk
 
 dependencies:
   pre:
