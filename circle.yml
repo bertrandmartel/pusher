@@ -8,7 +8,7 @@ machine:
 test:
   override:
     - cd android && ./gradlew clean build connectedCheck
-    - cd ../firmware && make build
+    - cd firmware && make build
   post:
     - mkdir $CIRCLE_ARTIFACTS/apk
     - mv android/app/build/outputs/apk/*.apk $CIRCLE_ARTIFACTS/apk
