@@ -10,23 +10,23 @@ Check [Bill of Materials file](./BOM.xls) for a concise list of all hardware ele
 
 * [RFduino uc module](http://www.rfduino.com/product/rfd22102-rfduino-dip/index.html)
 
-![rfduino](https://github.com/akinaru/pusher/raw/master/img/hw/rfduino_module.png)
+![rfduino](https://github.com/bertrandmartel/pusher/raw/master/img/hw/rfduino_module.png)
 
 * [RFduino servo module](http://www.rfduino.com/product/rfd22123-servo-shield-for-rfduino/index.html)
 
-![rfduino](https://github.com/akinaru/pusher/raw/master/img/hw/rfduino_servo_module.png)
+![rfduino](https://github.com/bertrandmartel/pusher/raw/master/img/hw/rfduino_servo_module.png)
 
 * [3V3 NewHaven LCD panel](http://www.mouser.fr/Search/ProductDetail.aspx?R=NHD-0216SZ-NSW-BBW-33V3virtualkey66010000virtualkey763-0216SZNSWBBW33V3)
 
-![rfduino](https://github.com/akinaru/pusher/raw/master/img/hw/lcd.jpg)
+![rfduino](https://github.com/bertrandmartel/pusher/raw/master/img/hw/lcd.jpg)
 
 * [5V to 3V3 Voltage regulator LD1117V33](http://www.mouser.fr/ProductDetail/STMicroelectronics/LD1117V33/?qs=sGAEpiMZZMvHdo5hUx%252bJYl1lUmOd3DGr)
 
-![rfduino](https://github.com/akinaru/pusher/raw/master/img/hw/LD1117V33.jpg)
+![rfduino](https://github.com/bertrandmartel/pusher/raw/master/img/hw/LD1117V33.jpg)
 
 * [Rfduino UART module](http://www.rfduino.com/product/rfd22121-usb-shield-for-rfduino/index.html) (for uploading/debgging purpose)
 
-![rfduino](https://github.com/akinaru/pusher/raw/master/img/hw/rfduino_alim_module.png)
+![rfduino](https://github.com/bertrandmartel/pusher/raw/master/img/hw/rfduino_alim_module.png)
 
 ### Prototype wiring 
 
@@ -38,16 +38,16 @@ This device is meant to push a wall switch of "Mosaic" type which is harder to p
 
 An aluminium sheet is used to support this servomotor : 
 
-![aluminium_sheet](https://github.com/akinaru/pusher/raw/master/img/hw/plate.jpg)
+![aluminium_sheet](https://github.com/bertrandmartel/pusher/raw/master/img/hw/plate.jpg)
 
 Servomotor is fixed to the bracket, the bracket is fixed to this plate :
 
-![bracket_servo](https://github.com/akinaru/pusher/raw/master/img/hw/face_mech.jpg)
+![bracket_servo](https://github.com/bertrandmartel/pusher/raw/master/img/hw/face_mech.jpg)
 
 You can use 3.5mm or 4.mm screws with imagesco bracket (http://www.imagesco.com/catalog/servobot/SUB-01.pdf) :
 
-![bracket_screws](https://github.com/akinaru/pusher/raw/master/img/hw/side_mech.jpg)
+![bracket_screws](https://github.com/bertrandmartel/pusher/raw/master/img/hw/side_mech.jpg)
 
 The servomotor is then connected to Rfduino servo shield module that features an external 5V DC supply :
 
-![bracket_screws](https://github.com/akinaru/pusher/raw/master/img/hw/face_hw.jpg)
+![bracket_screws](https://github.com/bertrandmartel/pusher/raw/master/img/hw/face_hw.jpg)

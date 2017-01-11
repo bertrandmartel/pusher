@@ -1,14 +1,14 @@
 # Pusher
 
-[![CircleCI](https://img.shields.io/circleci/project/akinaru/pusher.svg?maxAge=2592000?style=plastic)](https://circleci.com/gh/akinaru/pusher) [![License](http://badge.kloud51.com/pypi/l/html2text.svg)](LICENSE.md)
+[![CircleCI](https://img.shields.io/circleci/project/bertrandmartel/pusher.svg?maxAge=2592000?style=plastic)](https://circleci.com/gh/bertrandmartel/pusher) [![License](http://badge.kloud51.com/pypi/l/html2text.svg)](LICENSE.md)
 
 Mechanical wall switch button pusher securely controlled via Bluetooth LE with RFduino module/LCD panel & via Android smartphone
 
 [![Download Pusher from Google Play](http://www.android.com/images/brand/android_app_on_play_large.png)](https://play.google.com/store/apps/details?id=com.github.akinaru.roboticbuttonpusher)
 
-![demo](https://github.com/akinaru/pusher/raw/master/img/demo.gif)
+![demo](https://github.com/bertrandmartel/pusher/raw/master/img/demo.gif)
 
-![screenshot](https://github.com/akinaru/pusher/raw/master/img/lcd.jpg)
+![screenshot](https://github.com/bertrandmartel/pusher/raw/master/img/lcd.jpg)
 
 ***
 
@@ -20,7 +20,7 @@ Application layer association security  :
 
 protected against MIM & Replay attack
 
-![pairing](https://github.com/akinaru/pusher/raw/master/img/pairing.gif)
+![pairing](https://github.com/bertrandmartel/pusher/raw/master/img/pairing.gif)
 
 ## Project structure
 
@@ -33,7 +33,7 @@ protected against MIM & Replay attack
 ### Get source code
 
 ```
-git clone git@github.com:akinaru/pusher.git
+git clone git@github.com:bertrandmartel/pusher.git
 cd pusher
 git submodule update --init --recursive
 ```
@@ -52,9 +52,9 @@ cd android
 ./gradlew build
 ```
 
-## [Firmware specifications](https://github.com/akinaru/pusher/blob/master/firmware/README.md)
+## [Firmware specifications](https://github.com/bertrandmartel/pusher/blob/master/firmware/README.md)
 
-## [Hardware specifications](https://github.com/akinaru/pusher/blob/master/hardware/README.md)
+## [Hardware specifications](https://github.com/bertrandmartel/pusher/blob/master/hardware/README.md)
 
 ## External library
 
@@ -62,7 +62,7 @@ cd android
 
 * rfduino software : https://github.com/RFduino/RFduino
 * LiquidCrystal arduino library : https://github.com/arduino-libraries/LiquidCrystal
-* rfduino-makefile : https://github.com/akinaru/rfduino-makefile
+* rfduino-makefile : https://github.com/bertrandmartel/rfduino-makefile
 * AES library by Brian Gladman
 
 ### Android application
