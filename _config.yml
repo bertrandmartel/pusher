@@ -1,0 +1,8 @@
+title: Bluetooth-button-pusher
+description: Mechanical button-pusher securely controlled via Bluetooth LE
+google_analytics: 
+show_downloads: true
+theme: jekyll-theme-architect
+
+gems:
+  - jekyll-mentions
