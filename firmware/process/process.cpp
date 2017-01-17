@@ -26,6 +26,8 @@
 #include "crypto/crypto.h"
 #include "lcd/LcdPrinter.h"
 
+#define SERVO_PIN 2
+
 Process::Process(){
 	state = STATE_NONE;
 	state_count= 0;
@@ -63,18 +65,22 @@ void Process::init(LcdPrinter *lcd_printer,AES *aes,Config *config,Crypto *crypt
 	this->config = config;
 	this->aes = aes;
 	this->lcd_printer = lcd_printer;
+
+  servo.attach(SERVO_PIN);
+  servo.write(0);
+  servo.detach();
 }
 
 void Process::motor_process()
 {
-  for(int angle = 0; angle < 175; angle++)
+  for(int angle = 0; angle < 180; angle++)
   {
     servo.write(angle);
-    delay(5);
+    delay(3);
   }
   delay(500);
   
-  for(int angle = 174; angle >0;angle--)
+  for(int angle = 179; angle >0;angle--)
   {
     servo.write(angle);
     delay(5);
@@ -219,7 +225,7 @@ void Process::processEncryptedFrame(byte * check){
             lcd_printer->print_lcd_message("command status :","push success");
 
             sendCommandStatus(COMMAND_PUSH,true);
-            servo.attach(2);
+            servo.attach(SERVO_PIN);
             motor_process();
             servo.detach();
             break;
